@@ -1,5 +1,5 @@
 // components/SectionHeader.tsx
-import { Button } from "./button";
+import { Button } from "../button/button";
 
 type SectionHeaderProps = {
   title: string;
