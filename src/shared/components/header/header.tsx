@@ -15,13 +15,18 @@ import { Input } from "../ui/ui/input";
 
 export default function Header() {
   return (
-    <header className="h-16 bg-gradient-to-r from-gray-600 to-black flex items-center px-6">
+    <header className="h-16 bg-gradient-to-r from-blue-600 to-black flex items-center px-6">
       <div className="flex w-full items-center justify-between text-white">
 
         
 
         {/* LEFT SIDE (already built earlier) */}
         <div className="flex items-center gap-3">
+          <img 
+           src="/DotsNine.png"
+           alt="Menu"
+           className="w-6 h-6 cursor-pointer opacity-90 hover:opacity-100"
+           />
           <Building2 className="w-7 h-7" />
 
           <div className="leading-tight">
