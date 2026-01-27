@@ -48,7 +48,6 @@ const loadMessages = (boardId?: string): Message[] => {
 ====================================================== */
 const PieChart = ({ data }: { data: Slice[] }) => {
   const total = data.reduce((sum, slice) => sum + slice.value, 0);
-  let acc = 0;
 
   const [hovered, setHovered] = useState<number | null>(null);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -93,9 +92,10 @@ const PieChart = ({ data }: { data: Slice[] }) => {
       {/* SVG */}
       <svg width={180} height={180} viewBox="0 0 32 32">
         {data.map((slice, idx) => {
-          const start = (acc / total) * 2 * Math.PI;
-          acc += slice.value;
-          const end = (acc / total) * 2 * Math.PI;
+          let accumulated = data.slice(0, idx).reduce((sum, s) => sum + s.value, 0);
+          const start = (accumulated / total) * 2 * Math.PI;
+          accumulated += slice.value;
+          const end = (accumulated / total) * 2 * Math.PI;
 
           const x1 = 16 + 16 * Math.cos(start);
           const y1 = 16 + 16 * Math.sin(start);
@@ -132,6 +132,41 @@ const PieChart = ({ data }: { data: Slice[] }) => {
           );
         })}
       </svg>
+    </div>
+  );
+};
+
+/* ======================================================
+   WELCOME SCREEN COMPONENT
+====================================================== */
+const WelcomeScreen = ({ onSuggestionClick }: { onSuggestionClick: (text: string) => void }) => {
+  const suggestions = [
+    "Analyze sales performance",
+    "Create a pie chart",
+    "Summarize this data",
+    "Generate insights",
+  ];
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-6 text-center">
+      <img
+        src="/Cisco-AI-Assistant.png"
+        className="w-24 h-24 rounded-full bg-blue-50 p-3"
+      />
+
+      <h2 className="text-2xl font-semibold">How can I help today?</h2>
+
+      <div className="w-full max-w-md flex flex-col gap-3">
+        {suggestions.map((text, i) => (
+          <button
+            key={i}
+            onClick={() => onSuggestionClick(text)}
+            className="border rounded-lg px-4 py-3 text-sm text-left hover:bg-gray-100"
+          >
+            {text}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
@@ -194,41 +229,8 @@ export default function AIAssistantBody() {
     setInput("");
   };
 
-  /* -------- WELCOME SCREEN -------- */
-  const WelcomeScreen = () => {
-    const suggestions = [
-      "Analyze sales performance",
-      "Create a pie chart",
-      "Summarize this data",
-      "Generate insights",
-    ];
 
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 text-center">
-        <img
-          src="/Cisco-AI-Assistant.png"
-          className="w-24 h-24 rounded-full bg-blue-50 p-3"
-        />
 
-        <h2 className="text-2xl font-semibold">How can I help today?</h2>
-
-        <div className="w-full max-w-md flex flex-col gap-3">
-          {suggestions.map((text, i) => (
-            <button
-              key={i}
-              onClick={() => {
-                setInput(text);
-                setTimeout(handleSend, 0);
-              }}
-              className="border rounded-lg px-4 py-3 text-sm text-left hover:bg-gray-100"
-            >
-              {text}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  };
 
   /* ======================================================
      UI
@@ -239,7 +241,10 @@ export default function AIAssistantBody() {
         {/* CHAT AREA */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
           {messages.length === 0 ? (
-            <WelcomeScreen />
+            <WelcomeScreen onSuggestionClick={(text) => {
+                setInput(text);
+                setTimeout(handleSend, 0);
+              }} />
           ) : (
             <div className="flex flex-col gap-4">
               {messages.map((msg) => (

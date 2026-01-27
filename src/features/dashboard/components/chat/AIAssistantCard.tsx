@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { MoreHorizontal, ChevronDown, ChevronUp } from "lucide-react";
-import { cn } from "../../../shared/utils/lib/utils";
+import { cn } from "../../../../shared/utils/lib/utils";
 import AIAssistantBody from "./AIAssistantBody";
 
 export default function AIAssistantCard({
