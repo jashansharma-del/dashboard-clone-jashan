@@ -72,3 +72,5 @@ export default defineConfig([
 ])
 ```
 heelooooo
+nice
+this is cool
