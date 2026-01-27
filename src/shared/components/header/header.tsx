@@ -25,13 +25,18 @@ export default function Header() {
           <img 
            src="/DotsNine.png"
            alt="Menu"
-           className="w-6 h-6 cursor-pointer opacity-90 hover:opacity-100"
+           className="w-38px h-38px cursor-pointer opacity-90 hover:opacity-100"
            />
-          <Building2 className="w-7 h-7" />
+         
+          <img 
+           src="/Logo@2x.png"
+           alt="Logo"
+           className="w-37.58px h-24px cursor-pointer opacity-90 hover:opacity-100"
+           />
 
-          <div className="leading-tight">
-            <p className="text-sm text-gray-300">Cisco Commerce</p>
-            <p className="text-lg font-semibold">Home</p>
+          <div className="leading-tight ">
+            <p className="text-sm text-gray-300 h-11px w-97px">Cisco Commerce</p>
+            <p className="text-lg font-semibold ">Home</p>
           </div>
         </div>
 
