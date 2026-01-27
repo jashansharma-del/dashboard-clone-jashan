@@ -22,6 +22,11 @@ export default function Header() {
 
         {/* LEFT SIDE (already built earlier) */}
         <div className="flex items-center gap-3">
+          <img 
+           src="/DotsNine.png"
+           alt="Menu"
+           className="w-6 h-6 cursor-pointer opacity-90 hover:opacity-100"
+           />
           <Building2 className="w-7 h-7" />
 
           <div className="leading-tight">
