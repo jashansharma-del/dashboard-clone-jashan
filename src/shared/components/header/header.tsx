@@ -15,7 +15,7 @@ import { Input } from "../ui/ui/input";
 
 export default function Header() {
   return (
-    <header className="h-16 bg-gradient-to-r from-yellow-600 to-black flex items-center px-6">
+    <header className="h-16 bg-gradient-to-r from-gray-600 to-black flex items-center px-6">
       <div className="flex w-full items-center justify-between text-white">
 
         
@@ -48,6 +48,7 @@ export default function Header() {
           <Button className="bg-blue-600 hover:bg-blue-700 text-white">
             <Plus className="w-4 h-4 mr-1" />
             Create
+            <ChevronDown className="w-4 h-4 ml-1" />
           </Button>
 
           {/* Divider */}
