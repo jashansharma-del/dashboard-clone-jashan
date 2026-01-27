@@ -65,18 +65,7 @@ export default function DragDropWrapper({
     });
   }, []);
 
-  useEffect(() => {
-    if (!propBoardId) return;
-    try {
-      const stored = localStorage.getItem(getStorageKey(propBoardId));
-      const loaded = stored ? JSON.parse(stored) : [];
-      console.log("📂 Loading nodes from localStorage:", loaded);
-      setDroppedNodes(loaded);
-    } catch {
-      localStorage.removeItem(getStorageKey(propBoardId));
-      setDroppedNodes([]);
-    }
-  }, [propBoardId]);
+
 
   useEffect(() => {
     if (!propBoardId) return;
