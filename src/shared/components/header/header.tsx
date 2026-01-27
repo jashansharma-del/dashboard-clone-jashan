@@ -7,7 +7,7 @@ import {
   HelpCircle,
   Bell,
   User, 
-  Building2
+  Building2,
 } from "lucide-react";
 
 import { Button } from "../ui/button/button";
