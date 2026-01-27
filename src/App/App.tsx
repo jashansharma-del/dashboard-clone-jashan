@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import Header from "../shared/components/header/header";
 import BoardsPage from "../features/dashboard/BoardsPage";
-import NewBoardPage from "../features/dashboard/NewBoardPage/NewBoardPage";
+import NewBoardPage from "../features/dashboard/pages/NewBoardPage";
 
 export default function App() {
   return (
