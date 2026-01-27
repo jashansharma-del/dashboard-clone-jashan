@@ -1,0 +1,178 @@
+import ReactFlow, {
+  Background,
+  ReactFlowProvider,
+  useReactFlow,
+} from "reactflow";
+import type { Node } from "reactflow";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import "reactflow/dist/style.css";
+import { useParams } from "react-router-dom";
+import { Home, MoreHorizontal } from "lucide-react";
+
+import { useDragDrop } from "../../../../shared/hooks/DragDropContext";
+import { CanvasCard, AIAssistantCard, PieChartNode } from "../../components";
+import { findNonOverlappingPosition } from "../../components/utils";
+import type { PieNodeData } from "../../types/chartTypes";
+
+/* ============================
+   BOARD CANVAS (Inner component with useReactFlow)
+============================ */
+
+const BoardCanvasInner = () => {
+  const { boardId } = useParams<{ boardId: string }>();
+  const { droppedNodes, addNode, onNodesChange } = useDragDrop();
+  
+  const reactFlowInstance = useReactFlow();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    console.log("🔵 BoardCanvasInner - droppedNodes:", droppedNodes);
+    console.log("🔵 Number of nodes:", droppedNodes.length);
+  }, [droppedNodes]);
+
+  const nodeTypes = useMemo(
+    () => {
+      const types = { "pie-chart": PieChartNode };
+      console.log("📦 Node types registered:", Object.keys(types));
+      return types;
+    },
+    []
+  );
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setIsDragging(true);
+  }, []);
+
+  const onDragLeave = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    console.log("🎯 Drop event triggered");
+
+    const bounds = wrapperRef.current?.getBoundingClientRect();
+    if (!bounds) {
+      console.error("❌ Wrapper ref not available");
+      return;
+    }
+
+    try {
+      const rawData = e.dataTransfer.getData("application/reactflow");
+      if (!rawData) {
+        console.error("❌ No drag data found");
+        return;
+      }
+
+      const payload = JSON.parse(rawData);
+      console.log("📦 Drop payload:", payload);
+
+      if (payload.type !== "pie-chart") {
+        console.error("❌ Invalid payload type:", payload.type);
+        return;
+      }
+
+      const desiredPosition = reactFlowInstance.screenToFlowPosition({
+        x: e.clientX,
+        y: e.clientY,
+      });
+
+      console.log("📍 Desired position:", desiredPosition);
+
+      const nodeWidth = 200;
+      const nodeHeight = 200;
+
+      const finalPosition = findNonOverlappingPosition(
+        {
+          x: desiredPosition.x - nodeWidth / 2,
+          y: desiredPosition.y - nodeHeight / 2,
+        },
+        nodeWidth,
+        nodeHeight,
+        droppedNodes
+      );
+
+      console.log("📍 Final position (after collision check):", finalPosition);
+
+      const newNode: Node<PieNodeData> = {
+        id: `pie-${Date.now()}`,
+        type: "pie-chart",
+        position: finalPosition,
+        style: {
+          width: nodeWidth,
+          height: nodeHeight,
+        },
+        data: {
+          graphData: payload.data,
+          width: nodeWidth,
+          height: nodeHeight,
+        },
+      };
+
+      console.log("➕ Adding node:", newNode);
+      addNode(newNode);
+    } catch (error) {
+      console.error("❌ Error handling drop:", error);
+    }
+  }, [reactFlowInstance, addNode, droppedNodes]);
+
+
+  console.log("🖼️ Rendering ReactFlow with", droppedNodes.length, "nodes");
+
+  return (
+    <div
+      ref={wrapperRef}
+      className="absolute inset-0"
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragLeave={onDragLeave}
+    >
+      <ReactFlow
+        nodes={droppedNodes}
+        edges={[]}
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onNodeDoubleClick={(_, node) => {
+          console.log("Node double clicked:", node.id);
+        }}
+
+        nodesConnectable={false}
+        nodesDraggable={true}
+        panOnDrag={true}  // FIXED: Allow panning with left mouse button
+        zoomOnScroll={true}
+        zoomOnPinch={true}
+        panOnScroll={false}
+        fitView
+      >
+        <Background gap={24} />
+      </ReactFlow>
+
+      <AIAssistantCard disablePointer={isDragging} />
+
+      <div className="absolute top-4 left-6 z-10">
+        <CanvasCard className="flex items-center gap-3 px-4 py-2">
+          <Home />
+          Board {boardId?.slice(0, 8)}
+          <MoreHorizontal />
+        </CanvasCard>
+      </div>
+    </div>
+  );
+};
+
+/* ============================
+   BOARD CANVAS (Outer wrapper)
+============================ */
+
+export const BoardCanvas = () => {
+  return (
+    <ReactFlowProvider>
+      <BoardCanvasInner />
+    </ReactFlowProvider>
+  );
+};

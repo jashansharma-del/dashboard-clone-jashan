@@ -1,4 +1,4 @@
-import { cn } from "../../../shared/utils/lib/utils";
+import { cn } from "../../../../shared/utils/lib/utils";
 
 type CanvasCardProps = {
   children: React.ReactNode;

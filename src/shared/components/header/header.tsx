@@ -10,7 +10,7 @@ import {
   Building2
 } from "lucide-react";
 
-import { Button } from "../ui/ui/button";
+import { Button } from "../ui/button/button";
 import { Input } from "../ui/ui/input";
 
 export default function Header() {
