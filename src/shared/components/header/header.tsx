@@ -15,7 +15,7 @@ import { Input } from "../ui/ui/input";
 
 export default function Header() {
   return (
-    <header className="h-16 bg-gradient-to-r from-green-600 to-black flex items-center px-6">
+    <header className="h-16 bg-gradient-to-r from-yellow-600 to-black flex items-center px-6">
       <div className="flex w-full items-center justify-between text-white">
 
         
