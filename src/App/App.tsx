@@ -7,7 +7,6 @@ export default function App() {
   return (
     <div>
       <Header />
-
       <Routes>
         <Route path="/" element={<BoardsPage />} />
         <Route path="/newboard" element={<NewBoardPage />} />
