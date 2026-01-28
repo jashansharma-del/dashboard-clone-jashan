@@ -124,10 +124,29 @@ const BoardCanvasInner = () => {
 
   console.log("🖼️ Rendering ReactFlow with", droppedNodes.length, "nodes");
 
+
+
+
+  const firstUserMessage = useMemo(() => {
+    if (!boardId) return null;
+
+  try {
+      const stored = localStorage.getItem(`chat-${boardId}`);
+      if (!stored) return null;
+
+      const messages = JSON.parse(stored);
+      const firstUserMsg = messages.find((msg: any) => msg.role === "user");
+
+    return firstUserMsg?.text || null;
+  } catch {
+    return null;
+  }
+}, [boardId]);
+
   return (
     <div
       ref={wrapperRef}
-      className="absolute inset-0"
+      className="absolute inset-0 bg-background"
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragLeave={onDragLeave}
@@ -149,15 +168,17 @@ const BoardCanvasInner = () => {
         panOnScroll={false}
         fitView
       >
-        <Background gap={24} />
+        <Background gap={29} color={document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'} />
       </ReactFlow>
 
       <AIAssistantCard disablePointer={isDragging} />
 
       <div className="absolute top-4 left-6 z-10">
-        <CanvasCard className="flex items-center gap-3 px-4 py-2">
+        <CanvasCard className="flex items-center gap-3 px-4 py-2 text-gray-900 dark:text-white">
           <Home />
-          Board {boardId?.slice(0, 8)}
+          <span className="text-sm truncate">
+            {firstUserMessage ?? "New conversation"}
+          </span>
           <MoreHorizontal />
         </CanvasCard>
       </div>
