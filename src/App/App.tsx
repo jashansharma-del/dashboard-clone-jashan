@@ -12,6 +12,7 @@ export default function App() {
         <Route path="/newboard" element={<NewBoardPage />} />
         <Route path="/newboard/:boardId" element={<NewBoardPage />} />
       </Routes>
+      
     </div>
   );
 }
