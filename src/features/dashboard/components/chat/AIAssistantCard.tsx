@@ -42,7 +42,7 @@ export default function AIAssistantCard({
         collapsed ? "h-[52px]" : "h-[calc(100%-200px)]"
       )}
     >
-      {/* HEADER */}
+      {/* HEADER,mfevn */}
       <div className="flex items-center justify-between h-[52px] px-3">
         <div className="flex items-center gap-2">
           <MoreHorizontal className="w-5 h-5 text-gray-500" />
