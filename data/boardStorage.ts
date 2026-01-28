@@ -72,6 +72,16 @@ export function updateBoard(board: Board): void {
   }
 }
 
+export function deleteBoard(id: string): void {
+  const boards = getBoards();
+  const filteredBoards = boards.filter(board => board.id !== id);
+  
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(filteredBoards));
+  
+  // Also delete the associated chat messages
+  localStorage.removeItem(`chat-${id}`);
+}
+
 // Helper function to add a widget with chart data to a board
 export function addChartWidget(boardId: string, label: string, data: ChartData[]): void {
   const board = getBoardById(boardId);
