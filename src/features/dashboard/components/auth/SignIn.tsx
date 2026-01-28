@@ -13,24 +13,37 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isRegister, setIsRegister] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]); // ✅ Corrected
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Load users from sessionStorage, fallback to JSON
-    const storedUsers = sessionStorage.getItem("users");
+    // Auto-login if 2-hour session exists
+    const token = localStorage.getItem("authToken");
+    const loginTime = localStorage.getItem("loginTime");
+    const twoHours = 2 * 60 * 60 * 1000;
+
+    if (token && loginTime && Date.now() - parseInt(loginTime) < twoHours) {
+      navigate("/boards");
+    } else {
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("loginTime");
+    }
+
+    // Load users from localStorage or fallback JSON
+    const storedUsers = localStorage.getItem("users");
     if (storedUsers) {
       setUsers(JSON.parse(storedUsers));
     } else {
       setUsers(usersData);
-      sessionStorage.setItem("users", JSON.stringify(usersData));
+      localStorage.setItem("users", JSON.stringify(usersData));
     }
-  }, []);
+  }, [navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (isRegister) {
+      // Register new user
       const exists = users.find((u) => u.name === name);
       if (exists) {
         setError("User name already exists!");
@@ -45,9 +58,9 @@ export default function SignIn() {
 
       const updatedUsers = [...users, newUser];
       setUsers(updatedUsers);
-      sessionStorage.setItem("users", JSON.stringify(updatedUsers));
+      localStorage.setItem("users", JSON.stringify(updatedUsers));
 
-      setError(" Account created successfully! You can able to Signguin.");
+      setError("✅ Account created successfully! You can now login.");
       setIsRegister(false);
       setName("");
       setPassword("");
@@ -57,8 +70,9 @@ export default function SignIn() {
     // Login
     const user = users.find((u) => u.name === name && u.password === password);
     if (user) {
-      const token = btoa(JSON.stringify({ name: user.name })); // simulate JWT
-      sessionStorage.setItem("authToken", token);
+      const token = btoa(JSON.stringify({ name: user.name }));
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("loginTime", Date.now().toString());
       navigate("/boards");
     } else {
       setError("!! Invalid name or password !!");
@@ -66,7 +80,7 @@ export default function SignIn() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-8">
         <h2 className="text-2xl font-bold text-center mb-2">
           {isRegister ? "Create Account" : "Welcome Back"}
