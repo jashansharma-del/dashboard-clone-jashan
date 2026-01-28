@@ -1,7 +1,7 @@
 import SectionHeader from "../../shared/components/ui/ui/SectionHeader";
 import BoardCard from "../../shared/components/ui/ui/BoardCard";
 import { useNavigate } from "react-router-dom";
-import { getBoards, createBoard, type Board, type Widget } from "../../shared/utils/data/boardStorage";
+import { getBoards, createBoard, type Board, type Widget } from "../../../data/boardStorage";
 import { useState, useEffect } from "react";
 
 export default function BoardsPage() {
@@ -34,7 +34,7 @@ export default function BoardsPage() {
       {/* MY BOARDS */}
       <section>
        <SectionHeader
-        title="My Boards"
+        title= "My Boards"
         secondaryAction={{ label: "Explore boards" }}
         primaryAction={{
           label: "Create new board",
