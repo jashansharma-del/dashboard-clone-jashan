@@ -4,6 +4,7 @@ import {
   Plus,
   Search,
   Sun,
+  Moon,
   Wand2,
   HelpCircle,
   Bell,
@@ -17,6 +18,7 @@ import { Input } from "../ui/ui/input";
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [userName, setUserName] = useState("User");
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,7 +42,29 @@ export default function Header() {
       localStorage.removeItem("loginTime");
       setUserName("User");
     }
+    
+    // Check for saved theme preference
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      setIsDarkMode(true);
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }, []);
+
+  const toggleTheme = () => {
+    const newTheme = !isDarkMode;
+    setIsDarkMode(newTheme);
+    
+    if (newTheme) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
@@ -50,13 +74,13 @@ export default function Header() {
   };
 
   return (
-    <header className="h-16 bg-gradient-to-r from-gray-600 to-black flex items-center px-6">
+    <header className="h-16 bg-gradient-to-r from-gray-800 to-gray-900 flex items-center px-6 transition-colors duration-300">
       <div className="flex w-full items-center justify-between text-white">
         <div className="flex items-center gap-3">
           <img src="/DotsNine.png" alt="Menu" className="w-[38px] h-[38px]" />
           <img src="/Logo@2x.png" alt="Logo" className="w-[37px] h-[24px]" />
           <div className="leading-tight">
-            <p className="text-sm text-gray-300">Cisco Commerce</p>
+            <p className="text-gray-300">Cisco Commerce</p>
             <p className="text-lg font-semibold">Home</p>
           </div>
         </div>
@@ -74,11 +98,17 @@ export default function Header() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
               placeholder="Search"
-              className="pl-9 bg-gray-800 border-none text-white placeholder:text-gray-400 w-64"
+              className="pl-9 bg-gray-700 border-none text-white placeholder:text-gray-400 w-64"
             />
           </div>
 
-          <Sun className="w-5 h-5 cursor-pointer" />
+          <div 
+            onClick={toggleTheme}
+            className="w-5 h-5 cursor-pointer flex items-center justify-center"
+          >
+            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </div>
+          
           <Wand2 className="w-5 h-5 cursor-pointer" />
           <HelpCircle className="w-5 h-5 cursor-pointer" />
           <Bell className="w-5 h-5 cursor-pointer" />
@@ -90,17 +120,17 @@ export default function Header() {
             >
               <User className="w-5 h-5" />
               <div className="leading-tight">
-                <p className="text-sm font-medium">{userName}</p>
+                <p className="text-sm font-medium text-white">{userName}</p>
                 <p className="text-xs text-gray-400">Logged in</p>
               </div>
               <ChevronDown className="w-4 h-4" />
             </div>
 
             {open && (
-              <div className="absolute right-0 mt-2 w-40 bg-white text-black rounded shadow-md">
+              <div className="bg-gray-800 text-white absolute right-0 mt-2 w-40 rounded shadow-md">
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-100"
+                  className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-700"
                 >
                   <LogOut className="w-4 h-4" />
                   Logout

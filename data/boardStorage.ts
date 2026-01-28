@@ -10,18 +10,28 @@ export type Message = {
   }[];
 };
 
+// Add chart data type
+export type ChartData = {
+  label: string;
+  value: number;
+};
+
 export type Widget = {
   id: string;
   type: string;
   position: { x: number; y: number };
-  props?: Record<string, unknown>;
+  props?: {
+    label?: string;
+    data?: ChartData[]; // Add data property for charts
+    [key: string]: any; // Allow other properties
+  };
 };
 
 export type Board = {
   id: string;
   title: string;
   widgets: Widget[];
-  messages?: Message[]; // Add messages property to the board
+  messages?: Message[];
 };
 
 const STORAGE_KEY = "boards";
@@ -31,7 +41,7 @@ export function createBoard(): Board {
     id: uuidv4(),
     title: "Untitled Board",
     widgets: [],
-    messages: [], // Initialize with empty messages array
+    messages: [],
   };
 
   const boards = getBoards();
@@ -47,13 +57,11 @@ export function getBoards(): Board[] {
   return data ? JSON.parse(data) : [];
 }
 
-// Function to get a specific board by ID
 export function getBoardById(id: string): Board | undefined {
   const boards = getBoards();
   return boards.find(board => board.id === id);
 }
 
-// Function to update a board
 export function updateBoard(board: Board): void {
   const boards = getBoards();
   const index = boards.findIndex(b => b.id === board.id);
@@ -61,5 +69,23 @@ export function updateBoard(board: Board): void {
   if (index !== -1) {
     boards[index] = board;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(boards));
+  }
+}
+
+// Helper function to add a widget with chart data to a board
+export function addChartWidget(boardId: string, label: string, data: ChartData[]): void {
+  const board = getBoardById(boardId);
+  if (board) {
+    const newWidget: Widget = {
+      id: uuidv4(),
+      type: "chart",
+      position: { x: 0, y: board.widgets.length * 100 },
+      props: {
+        label,
+        data
+      }
+    };
+    board.widgets.push(newWidget);
+    updateBoard(board);
   }
 }
