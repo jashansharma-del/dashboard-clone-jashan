@@ -42,15 +42,16 @@ export default function BoardsPage() {
         }}
       />
 
-        <div className="flex gap-6 flex-wrap">
+        <div className="flex gap-6 overflow-x-auto pb-4">
           {boards.map((board: Board) => (
-            <BoardCard
-              key={board.id}
-              title={board.id.slice(0, 8) + '...'}
-              widgets={board.widgets.map((w: Widget) => ({ type: w.type, label: typeof w.props?.label === 'string' ? w.props?.label || w.type : w.type }))}
-              messages={board.messages || []}
-              onClick={() => navigate(`/newboard/${board.id}`)}
-            />
+            <div key={board.id} className="flex-shrink-0">
+              <BoardCard
+                title={board.id.slice(0, 8) + '...'}
+                widgets={board.widgets.map((w: Widget) => ({ type: w.type, label: typeof w.props?.label === 'string' ? w.props?.label || w.type : w.type }))}
+                messages={board.messages || []}
+                onClick={() => navigate(`/newboard/${board.id}`)}
+              />
+            </div>
           ))}
         </div>
       </section>
@@ -59,14 +60,16 @@ export default function BoardsPage() {
       <section>
         <SectionHeader title="Boards shared with me" />
 
-        <div className="flex gap-6 flex-wrap">
-          <BoardCard
-            title="Product Refresh"
-            widgets={[
-              { type: "chart", label: "Refresh Timeline" },
-              { type: "table", label: "SKU Details" },
-            ]}
-          />
+        <div className="flex gap-6 overflow-x-auto pb-4">
+          <div className="flex-shrink-0">
+            <BoardCard
+              title="Product Refresh"
+              widgets={[
+                { type: "chart", label: "Refresh Timeline" },
+                { type: "table", label: "SKU Details" },
+              ]}
+            />
+          </div>
         </div>
       </section>
 
