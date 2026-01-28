@@ -257,7 +257,7 @@ export default function AIAssistantBody() {
             : msg
         )
       );
-    }, 2000); // 2 seconds loading time
+    }, 100); // 2 seconds loading time
   };
 
   /* ======================================================

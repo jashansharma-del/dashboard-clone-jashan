@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -7,13 +9,10 @@ import {
   Bell,
   User,
   ChevronDown,
-  LogOut
+  LogOut,
 } from "lucide-react";
-
 import { Button } from "../ui/button/button";
 import { Input } from "../ui/ui/input";
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -21,26 +20,38 @@ export default function Header() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = sessionStorage.getItem("authToken"); // ✅ use sessionStorage
-    if (token) {
+    const token = localStorage.getItem("authToken");
+    const loginTime = localStorage.getItem("loginTime");
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    // Check if login session is valid
+    if (token && loginTime && Date.now() - parseInt(loginTime) < oneDay) {
       try {
         const user = JSON.parse(atob(token));
         if (user?.name) setUserName(user.name);
-      } catch (err) {
+      } catch {
         console.error("Invalid token");
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("loginTime");
       }
+    } else {
+      // Session expired
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("loginTime");
+      setUserName("User");
     }
   }, []);
 
   const handleLogout = () => {
-    sessionStorage.removeItem("authToken"); // ✅ remove from sessionStorage
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("loginTime");
+    setUserName("User");
     navigate("/login");
   };
 
   return (
     <header className="h-16 bg-gradient-to-r from-gray-600 to-black flex items-center px-6">
       <div className="flex w-full items-center justify-between text-white">
-
         <div className="flex items-center gap-3">
           <img src="/DotsNine.png" alt="Menu" className="w-[38px] h-[38px]" />
           <img src="/Logo@2x.png" alt="Logo" className="w-[37px] h-[24px]" />
@@ -97,7 +108,6 @@ export default function Header() {
               </div>
             )}
           </div>
-
         </div>
       </div>
     </header>
