@@ -84,7 +84,7 @@ const BoardCanvasInner = () => {
 
       console.log("📍 Desired position:", desiredPosition);
 
-      const nodeWidth = 200;
+      const nodeWidth = 400;
       const nodeHeight = 200;
 
       const finalPosition = findNonOverlappingPosition(
@@ -162,13 +162,13 @@ const BoardCanvasInner = () => {
 
         nodesConnectable={false}
         nodesDraggable={true}
-        panOnDrag={true}  // FIXED: Allow panning with left mouse button
+        panOnDrag={true}  
         zoomOnScroll={true}
         zoomOnPinch={true}
         panOnScroll={false}
         fitView
       >
-        <Background gap={29} color={document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'} />
+        <Background gap={19} size={3} color={document.documentElement.classList.contains('dark') ? '#000000' : '#e5e7eb'} />
       </ReactFlow>
 
       <AIAssistantCard disablePointer={isDragging} />

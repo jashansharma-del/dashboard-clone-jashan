@@ -12,6 +12,7 @@ export default function AIAssistantCard({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [width, setWidth] = useState(400); // default width
   const resizingRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const [isResizing, setIsResizing] = useState(false);
 
   /* ---------------- RIGHT HORIZONTAL RESIZE ---------------- */
   const startResize = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -29,7 +30,7 @@ export default function AIAssistantCard({
     const maxWidth = window.innerWidth - 24; // 24px margin (left + some buffer)
     const newWidth = resizingRef.current.startWidth + deltaX;
 
-    setWidth(Math.min(Math.max(newWidth, 320), maxWidth));
+    setWidth(Math.min(Math.max(newWidth, 400), maxWidth));
   };
 
   const stopResize = () => {
@@ -37,30 +38,29 @@ export default function AIAssistantCard({
     window.removeEventListener("mousemove", handleMouseMove);
     window.removeEventListener("mouseup", stopResize);
   };
-
   return (
     <div
-      className={cn(
-        "bg-white dark:bg-gray-800 shadow-lg border dark:border-gray-700 flex flex-col overflow-hidden rounded-xl transition-all duration-300",
-        disablePointer && "pointer-events-none opacity-60",
+  className={cn(
+    "bg-white shadow-lg border flex flex-col  dark:border-gray-700 overflow-hidden rounded-xl transition-all duration-300",
+    disablePointer && "pointer-events-none opacity-60",
+    !isFullscreen && !collapsed && "fixed left-4 sm:left-6 bottom-4",
+    !isFullscreen && collapsed && "fixed left-4 sm:left-6 bottom-4 h-[52px]",
+    isFullscreen && !collapsed && "fixed top-16 left-0 right-0 bottom-0 w-full h-[calc(100vh-64px)] z-[9999]",
+    isFullscreen && collapsed && "fixed left-4 sm:left-6 bottom-4 h-[52px] w-[90vw] sm:w-[480px] max-w-[480px]"
+  )}
+  style={{
+    width: isFullscreen ? "100%" : width,
+    height: collapsed
+      ? 52
+      : isFullscreen
+      ? undefined
+      : "calc(100vh - 150px)",
+    transition: isResizing ? "none" : "width 0.3s ease",
+  }}
+>
 
-        // Normal mode (not fullscreen)
-        !isFullscreen &&
-          "fixed left-4 sm:left-6 bottom-4",
 
-        // Fullscreen mode
-        isFullscreen &&
-          "fixed top-16 left-0 right-0 bottom-0 w-full h-[calc(100vh-64px)] z-[9999]"
-      )}
-      style={{
-        width: isFullscreen ? "100%" : width,
-        height: collapsed
-          ? 52
-          : isFullscreen
-          ? undefined
-          : "calc(100vh - 150px)",
-      }}
-    >
+    
       {/* HEADER */}
       <div className="flex items-center justify-between h-[52px] px-3 border-b dark:border-gray-700 dark:bg-gray-800">
         <div className="flex items-center gap-2">
