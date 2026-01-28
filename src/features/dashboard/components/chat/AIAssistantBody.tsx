@@ -15,6 +15,7 @@ type Message = {
   text: string;
   role: "user" | "assistant";
   graphData?: GraphData;
+  isLoading?: boolean;
 };
 
 /* ======================================================
@@ -41,6 +42,19 @@ const loadMessages = (boardId?: string): Message[] => {
   } catch {
     return [];
   }
+};
+
+/* ======================================================
+   LOADING DOTS COMPONENT
+====================================================== */
+const LoadingDots = () => {
+  return (
+    <div className="flex gap-1 items-center py-2">
+      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+    </div>
+  );
 };
 
 /* ======================================================
@@ -148,7 +162,7 @@ const WelcomeScreen = ({ onSuggestionClick }: { onSuggestionClick: (text: string
   ];
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-6 text-center">
+    <div className="flex flex-col items-center justify-center gap-6 text-center h-full">
       <img
         src="/Cisco-AI-Assistant.png"
         className="w-24 h-24 rounded-full bg-blue-50 p-3"
@@ -202,10 +216,10 @@ export default function AIAssistantBody() {
 
   /* -------- AUTO SCROLL -------- */
   useEffect(() => {
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
-      behavior: "smooth",
-    });
+    const el = scrollRef.current;
+    if (!el) return;
+
+    el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   /* -------- SEND MESSAGE -------- */
@@ -218,86 +232,112 @@ export default function AIAssistantBody() {
       role: "user",
     };
 
-    const assistantMsg: Message = {
-      id: uuidv4(),
-      text: "Here is the analysis of your request:",
+    const assistantMsgId = uuidv4();
+    const loadingMsg: Message = {
+      id: assistantMsgId,
+      text: "",
       role: "assistant",
-      graphData: dummyGraphData,
+      isLoading: true,
     };
 
-    setMessages((prev) => [...prev, userMsg, assistantMsg]);
+    setMessages((prev) => [...prev, userMsg, loadingMsg]);
     setInput("");
+
+    // Simulate loading delay and then show the complete message
+    setTimeout(() => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMsgId
+            ? { 
+                ...msg, 
+                text: "Here is the analysis of your request:",
+                isLoading: false, 
+                graphData: dummyGraphData 
+              }
+            : msg
+        )
+      );
+    }, 2000); // 2 seconds loading time
   };
-
-
-
 
   /* ======================================================
      UI
   ====================================================== */
   return (
-    <div className="flex-1 h-screen p-2">
-      <div className="h-full border rounded-lg bg-gray-50 flex flex-col">
-        {/* CHAT AREA */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
-          {messages.length === 0 ? (
-            <WelcomeScreen onSuggestionClick={(text) => {
-                setInput(text);
-                setTimeout(handleSend, 0);
-              }} />
-          ) : (
-            <div className="flex flex-col gap-4">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${
-                    msg.role === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <div className="max-w-md flex flex-col gap-2">
-                    <div
-                      className={`px-3 py-2 rounded ${
-                        msg.role === "user"
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200"
-                      }`}
-                    >
-                      {msg.text}
+    <div className="flex-1 flex flex-col h-full min-h-0">
+      {/* CHAT AREA */}
+      <div 
+        ref={scrollRef} 
+        className="flex-1 overflow-y-auto px-4 py-4 min-h-0"
+      >
+        {messages.length === 0 ? (
+          <WelcomeScreen
+            onSuggestionClick={(text) => {
+              setInput(text);
+              setTimeout(handleSend, 0);
+            }}
+          />
+        ) : (
+          <div className="flex flex-col gap-4 pb-2">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${
+                  msg.role === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div className="max-w-md flex flex-col gap-2">
+                  {/* Show loading dots or actual message */}
+                  {msg.isLoading ? (
+                    <div className="px-3 py-2 rounded bg-gray-200">
+                      <LoadingDots />
                     </div>
-
-                    {msg.graphData && (
-                      <div className="bg-white border rounded p-4">
-                        <PieChart data={msg.graphData} />
+                  ) : (
+                    <>
+                      <div
+                        className={`px-3 py-2 rounded ${
+                          msg.role === "user"
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-200"
+                        }`}
+                      >
+                        {msg.text}
                       </div>
-                    )}
-                  </div>
+
+                      {msg.graphData && (
+                        <div className="bg-white border rounded p-4">
+                          <PieChart data={msg.graphData} />
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* INPUT */}
-        <div className="border-t px-4 py-3 bg-white">
-          <div className="flex items-center gap-2 border rounded px-3 py-2">
-            <input
-              className="flex-1 outline-none text-sm"
-              placeholder="Ask the AI Assistant..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            />
-
-            <Mic className="w-5 h-5 text-gray-400" />
-
-            <button
-              onClick={handleSend}
-              disabled={!input.trim()}
-              className="bg-blue-600 p-2 rounded disabled:opacity-50"
-            >
-              <Send className="w-4 h-4 text-white" />
-            </button>
+              </div>
+            ))}
           </div>
+        )}
+      </div>
+
+      {/* INPUT - Fixed at bottom */}
+      <div className="border-t px-4 py-3 bg-white shrink-0">
+        <div className="flex items-center gap-2 border rounded px-3 py-2">
+          <input
+            className="flex-1 outline-none text-sm"
+            placeholder="Ask the AI Assistant..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          />
+
+          <Mic className="w-5 h-5 text-gray-400" />
+
+          <button
+            onClick={handleSend}
+            disabled={!input.trim()}
+            className="bg-blue-600 p-2 rounded disabled:opacity-50"
+          >
+            <Send className="w-4 h-4 text-white" />
+          </button>
         </div>
       </div>
     </div>
