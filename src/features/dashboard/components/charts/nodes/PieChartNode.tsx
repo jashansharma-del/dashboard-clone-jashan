@@ -27,7 +27,7 @@ const PieChartNode = ({ data, selected }: NodeProps<PieNodeData>) => {
       />
       
       <div
-        className="bg-white rounded-lg shadow-lg p-4 border-2 transition-colors"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border-2 transition-colors"
         style={{
           width: '100%',
           height: '100%',
