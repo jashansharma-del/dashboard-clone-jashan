@@ -72,17 +72,20 @@ export default function BoardsPage() {
     // Load chat messages from separate storage
     const chatMessages = loadChatMessages(board.id);
     
-    // Extract charts from chat messages
+    // Extract charts from chat messages - ONLY TAKE THE FIRST CHART
     if (chatMessages && chatMessages.length > 0) {
-      chatMessages.forEach((msg: any, index: number) => {
-        if (msg.role === "assistant" && msg.graphData) {
-          widgets.push({
-            type: "chart",
-            label: `Chart ${index + 1}`,
-            data: msg.graphData
-          });
-        }
-      });
+      // Find the first assistant message with graphData
+      const firstChartMessage = chatMessages.find((msg: any) => 
+        msg.role === "assistant" && msg.graphData
+      );
+      
+      if (firstChartMessage) {
+        widgets.push({
+          type: "chart",
+          label: "Chart Preview", // Standard label instead of "Chart 1", "Chart 2", etc.
+          data: firstChartMessage.graphData
+        });
+      }
     }
     
     // If no charts found in messages, show the actual widgets
@@ -117,7 +120,7 @@ export default function BoardsPage() {
           }}
         />
 
-          <div className="overflow-x-auto overflow-y-hidden pb-4 -mx-6 px-6 max-w-full">
+          <div className="overflow-x-auto overflow-y-hidden pb-4 -mx-6 px-6 max-w-full scrollbar-hide">
             <div className="flex gap-6 w-max">
               {boards.map((board: Board) => (
                 <div 
@@ -152,6 +155,17 @@ export default function BoardsPage() {
         </section>
 
       </div>
+
+      {/* CSS to hide scrollbar */}
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 }
