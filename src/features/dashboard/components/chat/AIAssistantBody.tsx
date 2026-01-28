@@ -50,9 +50,9 @@ const loadMessages = (boardId?: string): Message[] => {
 const LoadingDots = () => {
   return (
     <div className="flex gap-1 items-center py-2">
-      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+      <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+      <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+      <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
     </div>
   );
 };
@@ -88,7 +88,7 @@ const PieChart = ({ data }: { data: Slice[] }) => {
       {/* TOOLTIP */}
       {hovered !== null && (
         <div
-          className="absolute bg-black text-white text-xs px-3 py-1 rounded z-50 pointer-events-none"
+          className="absolute bg-black dark:bg-gray-900 text-white text-xs px-3 py-1 rounded z-50 pointer-events-none"
           style={{
             left: pos.x,
             top: pos.y,
@@ -165,17 +165,17 @@ const WelcomeScreen = ({ onSuggestionClick }: { onSuggestionClick: (text: string
     <div className="flex flex-col items-center justify-center gap-6 text-center h-full">
       <img
         src="/Cisco-AI-Assistant.png"
-        className="w-24 h-24 rounded-full bg-blue-50 p-3"
+        className="w-24 h-24 rounded-full bg-blue-50 dark:bg-gray-700 p-3"
       />
-
-      <h2 className="text-2xl font-semibold">How can I help today?</h2>
-
+    
+      <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">How can I help today?</h2>
+    
       <div className="w-full max-w-md flex flex-col gap-3">
         {suggestions.map((text, i) => (
           <button
             key={i}
             onClick={() => onSuggestionClick(text)}
-            className="border rounded-lg px-4 py-3 text-sm text-left hover:bg-gray-100"
+            className="border dark:border-gray-700 rounded-lg px-4 py-3 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             {text}
           </button>
@@ -264,11 +264,11 @@ export default function AIAssistantBody() {
      UI
   ====================================================== */
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0">
+    <div className="flex-1 flex flex-col h-full min-h-0 bg-white dark:bg-gray-800">
       {/* CHAT AREA */}
       <div 
         ref={scrollRef} 
-        className="flex-1 overflow-y-auto px-4 py-4 min-h-0"
+        className="flex-1 overflow-y-auto px-4 py-4 min-h-0 bg-white dark:bg-gray-800"
       >
         {messages.length === 0 ? (
           <WelcomeScreen
@@ -289,7 +289,7 @@ export default function AIAssistantBody() {
                 <div className="max-w-md flex flex-col gap-2">
                   {/* Show loading dots or actual message */}
                   {msg.isLoading ? (
-                    <div className="px-3 py-2 rounded bg-gray-200">
+                    <div className="px-3 py-2 rounded bg-gray-200 dark:bg-gray-700">
                       <LoadingDots />
                     </div>
                   ) : (
@@ -298,14 +298,14 @@ export default function AIAssistantBody() {
                         className={`px-3 py-2 rounded ${
                           msg.role === "user"
                             ? "bg-blue-600 text-white"
-                            : "bg-gray-200"
+                            : "bg-gray-200 dark:bg-gray-700 dark:text-white"
                         }`}
                       >
                         {msg.text}
                       </div>
 
                       {msg.graphData && (
-                        <div className="bg-white border rounded p-4">
+                        <div className="bg-white dark:bg-gray-700 border dark:border-gray-600 rounded p-4">
                           <PieChart data={msg.graphData} />
                         </div>
                       )}
@@ -319,17 +319,17 @@ export default function AIAssistantBody() {
       </div>
 
       {/* INPUT - Fixed at bottom */}
-      <div className="border-t px-4 py-3 bg-white shrink-0">
-        <div className="flex items-center gap-2 border rounded px-3 py-2">
+      <div className="border-t px-4 py-3 bg-white dark:bg-gray-800 dark:border-t-gray-700 shrink-0">
+        <div className="flex items-center gap-2 border dark:border-gray-700 rounded px-3 py-2 bg-white dark:bg-gray-700">
           <input
-            className="flex-1 outline-none text-sm"
+            className="flex-1 outline-none text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             placeholder="Ask the AI Assistant..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
           />
 
-          <Mic className="w-5 h-5 text-gray-400" />
+          <Mic className="w-5 h-5 text-gray-400 dark:text-gray-500" />
 
           <button
             onClick={handleSend}
