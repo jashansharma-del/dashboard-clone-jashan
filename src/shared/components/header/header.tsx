@@ -1,4 +1,3 @@
-// Header.tsx
 import {
   Plus,
   Search,
@@ -6,55 +5,60 @@ import {
   Wand2,
   HelpCircle,
   Bell,
-  User, 
-  ChevronDown
+  User,
+  ChevronDown,
+  LogOut
 } from "lucide-react";
 
 import { Button } from "../ui/button/button";
 import { Input } from "../ui/ui/input";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Header() {
+  const [open, setOpen] = useState(false);
+  const [userName, setUserName] = useState("User");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("authToken"); // ✅ use sessionStorage
+    if (token) {
+      try {
+        const user = JSON.parse(atob(token));
+        if (user?.name) setUserName(user.name);
+      } catch (err) {
+        console.error("Invalid token");
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("authToken"); // ✅ remove from sessionStorage
+    navigate("/login");
+  };
+
   return (
     <header className="h-16 bg-gradient-to-r from-gray-600 to-black flex items-center px-6">
       <div className="flex w-full items-center justify-between text-white">
 
-        
-
-        {/* LEFT SIDE (already built earlier) */}
         <div className="flex items-center gap-3">
-          <img 
-           src="/DotsNine.png"
-           alt="Menu"
-           className="w-38px h-38px cursor-pointer opacity-90 hover:opacity-100"
-           />
-         
-          <img 
-           src="/Logo@2x.png"
-           alt="Logo"
-           className="w-37.58px h-24px cursor-pointer opacity-90 hover:opacity-100"
-           />
-
-          <div className="leading-tight ">
-            <p className="text-sm text-gray-300 h-11px w-97px">Cisco Commerce</p>
-            <p className="text-lg font-semibold ">Home</p>
+          <img src="/DotsNine.png" alt="Menu" className="w-[38px] h-[38px]" />
+          <img src="/Logo@2x.png" alt="Logo" className="w-[37px] h-[24px]" />
+          <div className="leading-tight">
+            <p className="text-sm text-gray-300">Cisco Commerce</p>
+            <p className="text-lg font-semibold">Home</p>
           </div>
         </div>
 
-
-        {/* RIGHT SIDE */}
         <div className="flex items-center gap-4">
-
-          {/* Create Button */}
           <Button className="bg-blue-600 hover:bg-blue-700 text-white">
             <Plus className="w-4 h-4 mr-1" />
             Create
             <ChevronDown className="w-4 h-4 ml-1" />
           </Button>
 
-          {/* Divider */}
           <div className="h-6 w-px bg-white/30" />
 
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
@@ -63,19 +67,35 @@ export default function Header() {
             />
           </div>
 
-          {/* Icons */}
-          <Sun className="w-5 h-5 opacity-80 cursor-pointer hover:opacity-100" />
-          <Wand2 className="w-5 h-5 opacity-80 cursor-pointer hover:opacity-100" />
-          <HelpCircle className="w-5 h-5 opacity-80 cursor-pointer hover:opacity-100" />
-          <Bell className="w-5 h-5 opacity-80 cursor-pointer hover:opacity-100" />
+          <Sun className="w-5 h-5 cursor-pointer" />
+          <Wand2 className="w-5 h-5 cursor-pointer" />
+          <HelpCircle className="w-5 h-5 cursor-pointer" />
+          <Bell className="w-5 h-5 cursor-pointer" />
 
-          {/* User */}
-          <div className="flex items-center gap-2 cursor-pointer">
-            <User className="w-5 h-5" />
-            <div className="leading-tight">
-              <p className="text-sm font-medium">David Elson</p>
-              <p className="text-xs text-gray-400">Portfolio seller</p>
+          <div className="relative">
+            <div
+              onClick={() => setOpen(!open)}
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <User className="w-5 h-5" />
+              <div className="leading-tight">
+                <p className="text-sm font-medium">{userName}</p>
+                <p className="text-xs text-gray-400">Logged in</p>
+              </div>
+              <ChevronDown className="w-4 h-4" />
             </div>
+
+            {open && (
+              <div className="absolute right-0 mt-2 w-40 bg-white text-black rounded shadow-md">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-100"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
 
         </div>
