@@ -2,15 +2,17 @@ import { useEffect, useState, useRef } from "react";
 import * as htmlToImage from "html-to-image";
 import BoardPreview from "./BoardPreview";
 import type { Message } from "../../../../../data/boardStorage";
+import { Trash2 } from "lucide-react";
 
 type BoardCardProps = {
   title: string;
   widgets: { type: string; label: string; data?: any }[];
   messages?: Message[];
   onClick?: () => void;
+  onDelete?: () => void;
 };
 
-export default function BoardCard({ title, widgets, messages = [], onClick }: BoardCardProps) {
+export default function BoardCard({ title, widgets, messages = [], onClick, onDelete }: BoardCardProps) {
   const previewRef = useRef<HTMLDivElement>(null);
   const [image, setImage] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -59,9 +61,21 @@ export default function BoardCard({ title, widgets, messages = [], onClick }: Bo
 
   return (
     <div 
-      className={`w-[420px] bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-all duration-300 ${onClick ? 'hover:scale-[1.02]' : ''}`}
+      className={`w-[420px] bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-all duration-300 relative ${onClick ? 'hover:scale-[1.02]' : ''}`}
       onClick={onClick}
     >
+      {onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="absolute bottom-4 right-4 p-2 bg-gray-500 hover:bg-black-600 dark:bg-red-600 dark:hover:bg-red-700 rounded-lg shadow-md transition-colors duration-200 z-10"
+          aria-label="Delete board"
+        >
+          <Trash2 className="w-4 h-4 text-white" />
+        </button>
+      )}
       <div className="absolute opacity-0 pointer-events-none">
         <div ref={previewRef}>
           <BoardPreview widgets={widgets} hasMessages={messages && messages.length > 0} />
