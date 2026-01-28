@@ -1,7 +1,7 @@
 import SectionHeader from "../../shared/components/ui/ui/SectionHeader";
 import BoardCard from "../../shared/components/ui/ui/BoardCard";
 import { useNavigate } from "react-router-dom";
-import { getBoards, createBoard, type Board, type Widget } from "../../../data/boardStorage";
+import { getBoards, createBoard, deleteBoard, type Board, type Widget } from "../../../data/boardStorage";
 import { useState, useEffect } from "react";
 
 export default function BoardsPage() {
@@ -99,6 +99,14 @@ export default function BoardsPage() {
     
     return widgets;
   };
+
+  const handleDeleteBoard = (boardId: string) => {
+    if (window.confirm("Are you sure you want to delete this board? This action cannot be undone.")) {
+      deleteBoard(boardId);
+      // Manually refresh the boards list after deletion
+      setBoards(getBoards());
+    }
+  };
   
   return (
     <div 
@@ -132,6 +140,7 @@ export default function BoardsPage() {
                     widgets={getBoardWidgets(board)}
                     messages={loadChatMessages(board.id)}
                     onClick={() => navigate(`/newboard/${board.id}`)}
+                    onDelete={() => handleDeleteBoard(board.id)}
                   />
                 </div>
               ))}

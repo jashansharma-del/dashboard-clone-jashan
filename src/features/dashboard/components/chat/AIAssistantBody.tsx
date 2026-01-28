@@ -334,7 +334,7 @@ export default function AIAssistantBody() {
           <button
             onClick={handleSend}
             disabled={!input.trim()}
-            className="bg-blue-600 p-2 rounded disabled:opacity-50"
+            className="bg-blue-600 hover:bg-blue-700 p-2 rounded disabled:opacity-50"
           >
             <Send className="w-4 h-4 text-white" />
           </button>
