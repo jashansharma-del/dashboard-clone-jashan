@@ -107,6 +107,24 @@ export default function BoardsPage() {
       setBoards(getBoards());
     }
   };
+  function getBoardTitleFromLocalMessages(boardId: string) {
+  const messages = loadChatMessages(boardId);
+
+  if (!messages || messages.length === 0) {
+    return "Untitled Board";
+  }
+
+  const firstUserMessage = messages.find(
+    (msg: any) => msg.role === "user" && msg.text.trim() !== ""
+  );
+
+  return firstUserMessage
+    ? firstUserMessage.text.length > 30
+      ? firstUserMessage.text.slice(0, 30) + "…"
+      : firstUserMessage.text
+    : "Untitled Board";
+}
+
   
   return (
     <div 
@@ -136,7 +154,7 @@ export default function BoardsPage() {
                   className="flex-shrink-0 transition-all duration-300"
                 >
                   <BoardCard
-                    title={board.id.slice(0, 8) + '...'}
+                    title={getBoardTitleFromLocalMessages(board.id)}
                     widgets={getBoardWidgets(board)}
                     messages={loadChatMessages(board.id)}
                     onClick={() => navigate(`/newboard/${board.id}`)}
