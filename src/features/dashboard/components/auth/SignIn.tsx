@@ -1,81 +1,73 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import usersData from "../../../../../data/users.json";
+import { Client, Account, ID } from "appwrite";
+import { useForm } from "react-hook-form";
 
-type User = {
-  id: number;
-  name: string;
+// Appwrite Configuration
+const client = new Client()
+  .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT || "https://cloud.appwrite.io/v1")
+  .setProject(import.meta.env.VITE_APPWRITE_PROJECT_ID || "");
+
+export const account = new Account(client);
+
+type AuthFormData = {
+  name?: string;
+  email: string;
   password: string;
 };
 
 export default function SignIn() {
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isRegister, setIsRegister] = useState(false);
-  const [users, setUsers] = useState<User[]>([]); // ✅ Corrected
   const navigate = useNavigate();
 
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [isRegister, setIsRegister] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<AuthFormData>();
+
   useEffect(() => {
-    // Auto-login if 2-hour session exists
-    const token = localStorage.getItem("authToken");
-    const loginTime = localStorage.getItem("loginTime");
-    const twoHours = 2 * 60 * 60 * 1000;
+    checkSession();
+  }, []);
 
-    if (token && loginTime && Date.now() - parseInt(loginTime) < twoHours) {
+  const checkSession = async () => {
+    try {
+      await account.get();
       navigate("/boards");
-    } else {
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("loginTime");
+    } catch {
+      console.log("No active session");
     }
+  };
 
-    // Load users from localStorage or fallback JSON
-    const storedUsers = localStorage.getItem("users");
-    if (storedUsers) {
-      setUsers(JSON.parse(storedUsers));
-    } else {
-      setUsers(usersData);
-      localStorage.setItem("users", JSON.stringify(usersData));
-    }
-  }, [navigate]);
+  const onSubmit = async (data: AuthFormData) => {
+    setError("");
+    setSuccess("");
+    setLoading(true);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    try {
+      const { name, email, password } = data;
 
-    if (isRegister) {
-      // Register new user
-      const exists = users.find((u) => u.name === name);
-      if (exists) {
-        setError("User name already exists!");
-        return;
+      if (isRegister) {
+        await account.create(ID.unique(), email, password, name);
+        await account.createEmailPasswordSession(email, password);
+
+        setSuccess("✅ Account created successfully!");
+        setTimeout(() => navigate("/boards"), 1500);
+      } else {
+        await account.createEmailPasswordSession(email, password);
+        navigate("/boards");
       }
-
-      const newUser: User = {
-        id: users.length + 1,
-        name,
-        password,
-      };
-
-      const updatedUsers = [...users, newUser];
-      setUsers(updatedUsers);
-      localStorage.setItem("users", JSON.stringify(updatedUsers));
-
-      setError("✅ Account created successfully! You can now login.");
-      setIsRegister(false);
-      setName("");
-      setPassword("");
-      return;
-    }
-
-    // Login
-    const user = users.find((u) => u.name === name && u.password === password);
-    if (user) {
-      const token = btoa(JSON.stringify({ name: user.name }));
-      localStorage.setItem("authToken", token);
-      localStorage.setItem("loginTime", Date.now().toString());
-      navigate("/boards");
-    } else {
-      setError("!! Invalid name or password !!");
+    } catch (err: any) {
+      if (err.code === 409) setError("Account already exists");
+      else if (err.code === 401) setError("Invalid email or password");
+      else setError("Something went wrong");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -85,61 +77,57 @@ export default function SignIn() {
         <h2 className="text-2xl font-bold text-center mb-2">
           {isRegister ? "Create Account" : "Welcome Back"}
         </h2>
-        <p className="text-gray-700 text-center mb-6">
-          {isRegister
-            ? "Fill in the details to create your account"
-            : "Please sign in to your account"}
-        </p>
 
-        {error && (
-          <div className="bg-red-100 text-red-600 text-center p-2 rounded mb-4 text-sm">
-            {error}
-          </div>
-        )}
+        {error && <p className="text-red-500 text-center">{error}</p>}
+        {success && <p className="text-green-500 text-center">{success}</p>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">User Name</label>
-            <input
-              type="text"
-              placeholder="Enter your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {isRegister && (
+            <div>
+              <input
+                placeholder="Full Name"
+                {...register("name", { required: "Name is required" })}
+                className="w-full border px-3 py-2"
+              />
+              {errors.name && <p className="text-red-500">{errors.name.message}</p>}
+            </div>
+          )}
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
-            <input
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+          <input
+            placeholder="Email"
+            {...register("email", { required: "Email is required" })}
+            className="w-full border px-3 py-2"
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            {...register("password", {
+              required: "Password required",
+              minLength: { value: 8, message: "Min 8 chars" },
+            })}
+            className="w-full border px-3 py-2"
+          />
 
           <button
             type="submit"
-            disabled={!name || !password}
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition disabled:opacity-50"
+            disabled={loading || isSubmitting}
+            className="w-full bg-blue-600 text-white py-2 rounded"
           >
             {isRegister ? "Create Account" : "Sign In"}
           </button>
         </form>
 
-        <p className="text-center mt-4 text-sm text-gray-600">
-          {isRegister ? "Already have an account? " : "Don't have an account? "}
-          <span
-            className="text-blue-600 cursor-pointer"
-            onClick={() => {
-              setError("");
-              setIsRegister(!isRegister);
-            }}
-          >
-            {isRegister ? "Sign In" : "Create Account"}
-          </span>
+        <p
+          className="text-center mt-4 text-blue-600 cursor-pointer"
+          onClick={() => {
+            setIsRegister(!isRegister);
+            setError("");
+            setSuccess("");
+            reset();
+          }}
+        >
+          {isRegister ? "Sign In" : "Create Account"}
         </p>
       </div>
     </div>

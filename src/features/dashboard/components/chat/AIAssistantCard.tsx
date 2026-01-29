@@ -55,7 +55,7 @@ export default function AIAssistantCard({
       : isFullscreen
       ? undefined
       : "calc(100vh - 150px)",
-    transition: isResizing ? "none" : "width 0.3s ease",
+    transition: isResizing ? "none" : "width 0.1s ease",
   }}
 >
 
