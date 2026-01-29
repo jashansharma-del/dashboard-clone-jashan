@@ -173,7 +173,7 @@ const BoardCanvasInner = () => {
 
       <AIAssistantCard disablePointer={isDragging} />
 
-      <div className="absolute top-4 left-6 z-10">
+      <div className="absolute top-4 left-6 z-1">
         <CanvasCard className="flex items-center gap-3 px-4 py-2 text-gray-900 dark:text-white">
           <Home />
           <span className="text-sm truncate">

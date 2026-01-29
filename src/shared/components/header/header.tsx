@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/button/button";
 import { Input } from "../ui/ui/input";
+import authService from "../../../features/dashboard/components/utils/authService";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -66,15 +67,17 @@ export default function Header() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("loginTime");
-    setUserName("User");
-    navigate("/login");
-  };
-
+  const handleLogout = async () => {
+  try {
+    console.log("Logout clicked");
+    await authService.logout();
+    navigate("/");
+  } catch (err) {
+    console.error(err);
+  }
+};
   return (
-    <header className="h-16 bg-gradient-to-r from-gray-800 to-gray-900 flex items-center px-6 transition-colors duration-300">
+    <header className="h-16 bg-gradient-to-r from-gray-800 to-gray-900 relative top-0 left-0 right-0 flex items-center px-6 transition-colors duration-300 ">
       <div className="flex w-full items-center justify-between text-white">
         <div className="flex items-center gap-3">
           <img src="/DotsNine.png" alt="Menu" className="w-[38px] h-[38px]" />
@@ -127,9 +130,12 @@ export default function Header() {
             </div>
 
             {open && (
-              <div className="bg-gray-800 text-white absolute right-0 mt-2 w-40 rounded shadow-md">
+              <div className="bg-gray-800 text-white absolute right-0 mt-2 w-40 rounded shadow-md z-[100]">
                 <button
-                  onClick={handleLogout}
+                  onClick={(e) => {
+                    e.stopPropagation(); // 🔥 critical for dropdowns
+                    handleLogout();
+                  }}
                   className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-700"
                 >
                   <LogOut className="w-4 h-4" />
