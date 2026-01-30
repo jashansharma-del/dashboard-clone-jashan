@@ -5,3 +5,15 @@ export type PieNodeData = {
   width: number;
   height: number;
 };
+
+export type BarNodeData = {
+  graphData: PieSlice[];
+  width: number;
+  height: number;
+};
+
+export type LineNodeData = {
+  graphData: PieSlice[];
+  width: number;
+  height: number;
+};

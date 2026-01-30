@@ -10,9 +10,9 @@ import { useParams } from "react-router-dom";
 import { Home, MoreHorizontal } from "lucide-react";
 
 import { useDragDrop } from "../../../../shared/hooks/DragDropContext";
-import { CanvasCard, AIAssistantCard, PieChartNode } from "../../components";
+import { CanvasCard, AIAssistantCard, PieChartNode, BarChartNode, LineChartNode } from "../../components";
 import { findNonOverlappingPosition } from "../../components/utils";
-import type { PieNodeData } from "../../types/chartTypes";
+import type { PieNodeData, BarNodeData, LineNodeData } from "../../types/chartTypes";
 
 /* ============================
    BOARD CANVAS (Inner component with useReactFlow)
@@ -33,7 +33,11 @@ const BoardCanvasInner = () => {
 
   const nodeTypes = useMemo(
     () => {
-      const types = { "pie-chart": PieChartNode };
+      const types = { 
+        "pie-chart": PieChartNode,
+        "bar-chart": BarChartNode,
+        "line-chart": LineChartNode
+      };
       console.log("📦 Node types registered:", Object.keys(types));
       return types;
     },
@@ -72,7 +76,9 @@ const BoardCanvasInner = () => {
       const payload = JSON.parse(rawData);
       console.log("📦 Drop payload:", payload);
 
-      if (payload.type !== "pie-chart") {
+      // Check if the payload type is one of our supported chart types
+      const supportedTypes = ["pie-chart", "bar-chart", "line-chart"];
+      if (!supportedTypes.includes(payload.type)) {
         console.error("❌ Invalid payload type:", payload.type);
         return;
       }
@@ -99,23 +105,63 @@ const BoardCanvasInner = () => {
 
       console.log("📍 Final position (after collision check):", finalPosition);
 
-      const newNode: Node<PieNodeData> = {
-        id: `pie-${Date.now()}`,
-        type: "pie-chart",
-        position: finalPosition,
-        style: {
-          width: nodeWidth,
-          height: nodeHeight,
-        },
-        data: {
-          graphData: payload.data,
-          width: nodeWidth,
-          height: nodeHeight,
-        },
-      };
-
-      console.log("➕ Adding node:", newNode);
-      addNode(newNode);
+      // Create node based on type
+      switch (payload.type) {
+        case "pie-chart":
+          const pieNode: Node<PieNodeData> = {
+            id: `pie-${Date.now()}`,
+            type: "pie-chart",
+            position: finalPosition,
+            style: {
+              width: nodeWidth,
+              height: nodeHeight,
+            },
+            data: {
+              graphData: payload.data,
+              width: nodeWidth,
+              height: nodeHeight,
+            },
+          };
+          addNode(pieNode);
+          break;
+        case "bar-chart":
+          const barNode: Node<BarNodeData> = {
+            id: `bar-${Date.now()}`,
+            type: "bar-chart",
+            position: finalPosition,
+            style: {
+              width: nodeWidth,
+              height: nodeHeight,
+            },
+            data: {
+              graphData: payload.data,
+              width: nodeWidth,
+              height: nodeHeight,
+            },
+          };
+          addNode(barNode);
+          break;
+        case "line-chart":
+          const lineNode: Node<LineNodeData> = {
+            id: `line-${Date.now()}`,
+            type: "line-chart",
+            position: finalPosition,
+            style: {
+              width: nodeWidth,
+              height: nodeHeight,
+            },
+            data: {
+              graphData: payload.data,
+              width: nodeWidth,
+              height: nodeHeight,
+            },
+          };
+          addNode(lineNode);
+          break;
+        default:
+          console.error("❌ Unsupported chart type:", payload.type);
+          return;
+      }
     } catch (error) {
       console.error("❌ Error handling drop:", error);
     }
