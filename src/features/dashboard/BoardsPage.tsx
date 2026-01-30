@@ -10,7 +10,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -83,20 +82,21 @@ export default function BoardsPage() {
     // Load chat messages from separate storage
     const chatMessages = loadChatMessages(board.id);
     
-    // Extract charts from chat messages - ONLY TAKE THE FIRST CHART
+    // Extract all charts from chat messages
     if (chatMessages && chatMessages.length > 0) {
-      // Find the first assistant message with graphData
-      const firstChartMessage = chatMessages.find((msg: any) => 
+      // Find all assistant messages with graphData
+      const chartMessages = chatMessages.filter((msg: any) => 
         msg.role === "assistant" && msg.graphData
       );
       
-      if (firstChartMessage) {
+      chartMessages.forEach((msg: any, index: number) => {
         widgets.push({
           type: "chart",
-          label: "Chart Preview", // Standard label instead of "Chart 1", "Chart 2", etc.
-          data: firstChartMessage.graphData
+          label: `Chart ${index + 1}`,
+          data: msg.graphData,
+          chartType: msg.chartType || "pie"
         });
-      }
+      });
     }
     
     // If no charts found in messages, show the actual widgets
@@ -160,10 +160,13 @@ export default function BoardsPage() {
         <section className="max-w-full">
          <SectionHeader
           title= "My Boards"
-          secondaryAction={{ label: "Explore boards" }}
           primaryAction={{
             label: "Create new board",
             onClick: handleCreateBoard,
+          }}
+          secondaryAction={{
+            label: "Explore more boards",
+            onClick: () => alert("Explore more boards clicked!"),
           }}
         />
 

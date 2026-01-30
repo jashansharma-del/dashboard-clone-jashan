@@ -15,6 +15,7 @@ type Message = {
   text: string;
   role: "user" | "assistant";
   graphData?: GraphData;
+  chartType?: 'pie' | 'bar' | 'line';
   isLoading?: boolean;
 };
 
@@ -151,6 +152,137 @@ const PieChart = ({ data }: { data: Slice[] }) => {
 };
 
 /* ======================================================
+   BAR CHART COMPONENT
+====================================================== */
+const BarChart = ({ data }: { data: Slice[] }) => {
+  const maxValue = Math.max(...data.map(slice => slice.value), 1);
+  const colors = ["#3B82F6", "#F59E0B", "#10B981", "#EF4444"];
+
+  /* -------- DRAG START -------- */
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    const dragData = {
+      type: "bar-chart",
+      data,
+    };
+    e.dataTransfer.setData("application/reactflow", JSON.stringify(dragData));
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  return (
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      className="relative w-fit cursor-move select-none"
+      title="Drag chart to canvas"
+    >
+      <svg width={180} height={180} viewBox="0 0 32 32">
+        <g transform="translate(4, 4)">
+          {data.map((slice, idx) => {
+            const barWidth = (24 / data.length) * 0.7;
+            const barHeight = (slice.value / maxValue) * 24;
+            const x = (idx * (24 / data.length)) + ((24 / data.length - barWidth) / 2);
+            const y = 28 - barHeight;
+            
+            return (
+              <g key={idx}>
+                <rect
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={barHeight}
+                  fill={colors[idx % colors.length]}
+                  rx="1"
+                />
+                <title>
+                  {slice.label}: {slice.value}
+                </title>
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+    </div>
+  );
+};
+
+/* ======================================================
+   LINE CHART COMPONENT
+====================================================== */
+const LineChart = ({ data }: { data: Slice[] }) => {
+  const maxValue = Math.max(...data.map(slice => slice.value), 1);
+  const colors = ["#3B82F6", "#F59E0B", "#10B981", "#EF4444"];
+
+  /* Calculate coordinates for the line */
+  const points = data.map((slice, idx) => {
+    const x = 4 + (idx * (24 / (data.length - 1 || 1)));
+    const y = 28 - ((slice.value / maxValue) * 24);
+    return { x, y, label: slice.label, value: slice.value };
+  });
+
+  const linePath = points.length > 1 
+    ? `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}` 
+    : '';
+
+  /* -------- DRAG START -------- */
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    const dragData = {
+      type: "line-chart",
+      data,
+    };
+    e.dataTransfer.setData("application/reactflow", JSON.stringify(dragData));
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  return (
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      className="relative w-fit cursor-move select-none"
+      title="Drag chart to canvas"
+    >
+      <svg width={180} height={180} viewBox="0 0 32 32">
+        {/* Grid lines */}
+        <defs>
+          <pattern id="smallGrid" width="4" height="4" patternUnits="userSpaceOnUse">
+            <path d="M 4 0 L 0 0 0 4" fill="none" stroke="#E5E7EB" strokeWidth="0.2"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#smallGrid)" />
+
+        {/* Data line */}
+        {linePath && (
+          <path
+            d={linePath}
+            fill="none"
+            stroke={colors[0]}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+
+        {/* Data points */}
+        {points.map((point, idx) => (
+          <g key={idx}>
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r="2"
+              fill={colors[idx % colors.length]}
+              stroke="white"
+              strokeWidth="0.5"
+            />
+            <title>
+              {point.label}: {point.value}
+            </title>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+};
+
+/* ======================================================
    WELCOME SCREEN COMPONENT
 ====================================================== */
 const WelcomeScreen = ({ onSuggestionClick }: { onSuggestionClick: (text: string) => void }) => {
@@ -245,6 +377,10 @@ export default function AIAssistantBody() {
 
     // Simulate loading delay and then show the complete message
     setTimeout(() => {
+      // Randomly select a chart type
+      const chartTypes: ('pie' | 'bar' | 'line')[] = ['pie', 'bar', 'line'];
+      const randomChartType = chartTypes[Math.floor(Math.random() * chartTypes.length)];
+      
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMsgId
@@ -252,7 +388,8 @@ export default function AIAssistantBody() {
                 ...msg, 
                 text: "Here is the analysis of your request:",
                 isLoading: false, 
-                graphData: dummyGraphData 
+                graphData: dummyGraphData,
+                chartType: randomChartType
               }
             : msg
         )
@@ -306,7 +443,13 @@ export default function AIAssistantBody() {
 
                       {msg.graphData && (
                         <div className="bg-white dark:bg-gray-700 border dark:border-gray-600 rounded p-4">
-                          <PieChart data={msg.graphData} />
+                          {msg.chartType === 'bar' ? (
+                            <BarChart data={msg.graphData} />
+                          ) : msg.chartType === 'line' ? (
+                            <LineChart data={msg.graphData} />
+                          ) : (
+                            <PieChart data={msg.graphData} />
+                          )}
                         </div>
                       )}
                     </>

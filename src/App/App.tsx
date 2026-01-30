@@ -7,6 +7,7 @@ import NewBoardPage from "../features/dashboard/pages/NewBoardPage";
 import SignIn from "../features/dashboard/components/auth/SignIn";
 import ProtectedRoute from "../features/dashboard/components/ProtectedRoute";
 import { AuthProvider } from "../features/dashboard/contexts/AuthContext";
+import { initializeTheme } from "../lib/theme";
 
 export default function App() {
   const location = useLocation();
@@ -14,16 +15,9 @@ export default function App() {
   // Hide header only on public entry page
   const hideHeader = location.pathname === "/";
 
-  // Theme init
+  // Initialize theme on app start
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-    if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    initializeTheme();
   }, []);
 
   return (
