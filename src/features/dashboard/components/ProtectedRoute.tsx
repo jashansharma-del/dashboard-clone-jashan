@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, Outlet, useNavigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { authService } from "../../../features/dashboard/components/utils/authService";
 
 interface ProtectedRouteProps {
@@ -8,50 +8,33 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  
 
   useEffect(() => {
+      const checkAuth = async () => {
+      const user = await authService.getCurrentUser();
+      setIsAuthenticated(!!user);
+    };
+
     checkAuth();
   }, []);
 
-  const checkAuth = async () => {
-    try {
-      const { isValid } = await authService.verifySession();
-      setIsAuthenticated(isValid);
-      
-      // If session is invalid, ensure we redirect to login
-      if (!isValid) {
-        setTimeout(() => {
-          navigate("/");
-        }, 500); // Small delay to ensure state update before navigation
-      }
-    } catch (error) {
-      console.error('Error checking auth:', error);
-      setIsAuthenticated(false);
-      navigate("/");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Show loading spinner while checking authentication
-  if (loading) {
+  //Loading state
+  if(isAuthenticated === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Checking authentication...</p>
-        </div>
+       <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-10 w-10 border-b-2 border-blue-600 rounded-full" />
       </div>
     );
   }
 
-  // Redirect to sign-in if not authenticated
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
+  // not logged in -> redirect
 
-  // Render children or outlet if authenticated
+  if(!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }  
+
+  // Logged in -> render route
   return children ? <>{children}</> : <Outlet />;
-}
+    
+  }

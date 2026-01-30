@@ -2,7 +2,7 @@ import { BarChart3, Table } from "lucide-react";
 import MiniChart from './MiniPieChart';
 
 type BoardPreviewProps = {
-  widgets: { type: string; label: string; data?: any; chartType?: 'pie' | 'bar' | 'line' }[];
+  widgets: { type: string; label: string; data?: { label: string; value: number }[]; chartType?: string }[];
   hasMessages?: boolean;
 };
 
@@ -30,7 +30,7 @@ export default function BoardPreview({ widgets, hasMessages = false }: BoardPrev
                 <div className="flex items-center justify-center mt-1">
                   <MiniChart 
                     data={widget.data} 
-                    type={widget.chartType || "pie"} 
+                    type={(widget.chartType as "pie" | "bar" | "line") || "pie"} 
                   />
                 </div>
               )}

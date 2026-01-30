@@ -6,8 +6,8 @@ import BoardsPage from "../features/dashboard/BoardsPage";
 import NewBoardPage from "../features/dashboard/pages/NewBoardPage";
 import SignIn from "../features/dashboard/components/auth/SignIn";
 import ProtectedRoute from "../features/dashboard/components/ProtectedRoute";
-import { AuthProvider } from "../features/dashboard/contexts/AuthContext";
 import { initializeTheme } from "../lib/theme";
+//import { AuthProvider } from "../features/dashboard/contexts/AuthContext";
 
 export default function App() {
   const location = useLocation();
@@ -21,7 +21,7 @@ export default function App() {
   }, []);
 
   return (
-    <AuthProvider>
+    
       <div className="min-h-screen bg-background text-foreground w-full max-w-full overflow-x-hidden">
         {!hideHeader && <Header />}
 
@@ -58,6 +58,6 @@ export default function App() {
           />
         </Routes>
       </div>
-    </AuthProvider>
+    
   );
 }

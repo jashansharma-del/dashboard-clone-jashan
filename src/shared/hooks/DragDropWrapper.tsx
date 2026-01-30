@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Node, NodeChange } from "reactflow";
 import { applyNodeChanges } from "reactflow";
 import { DragDropContext } from "./DragDropContext";
+import { updateBoard, getBoardById, type Widget} from "../../../data/boardStorage";
 
 const DROPPED_NODES_KEY_PREFIX = "droppedNodes";
 
@@ -75,6 +76,29 @@ export default function DragDropWrapper({
         getStorageKey(propBoardId),
         JSON.stringify(droppedNodes)
       );
+
+      const userData = localStorage.getItem("auth_user");
+      if (userData) {
+        const user = JSON.parse(userData);
+        const userId = user.id;
+
+        const board = getBoardById(userId, propBoardId);
+        if(board){
+          const widgets: Widget[] = droppedNodes.map(node => ({
+          id: node.id,
+          type: node.type || "unknown",
+          position: node.position || { x: 0, y: 0 },
+          props: {
+            label: node.data?.label || node.type || "Chart",
+            data: node.data?.graphData || [],
+            width: node.width ,
+            height: node.height 
+          }
+        }));
+        const updatedBoard = { ...board,widgets};
+        updateBoard(userId, updatedBoard);
+        }
+      }
     } catch (err) {
       console.error("Failed to save nodes:", err);
     }

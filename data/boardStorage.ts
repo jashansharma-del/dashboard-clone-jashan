@@ -23,68 +23,72 @@ export type Widget = {
   props?: {
     label?: string;
     data?: ChartData[]; // Add data property for charts
-    [key: string]: any; // Allow other properties
+    [key: string]: unknown; // Allow other properties
   };
 };
 
 export type Board = {
   id: string;
+  userId: string;
   title: string;
   widgets: Widget[];
   messages?: Message[];
 };
 
-const STORAGE_KEY = "boards";
+function getUserStorageKey(userId: string) {
+  return `boards-${userId}`;
+}
 
-export function createBoard(): Board {
+export function createBoard(userId: string): Board {
   const newBoard: Board = {
     id: uuidv4(),
+    userId: userId,
     title: "Untitled Board",
     widgets: [],
     messages: [],
   };
 
-  const boards = getBoards();
+  const boards = getBoards(userId);
   boards.push(newBoard);
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(boards));
+  localStorage.setItem(getUserStorageKey(userId), JSON.stringify(boards));
 
   return newBoard;
 }
 
-export function getBoards(): Board[] {
-  const data = localStorage.getItem(STORAGE_KEY);
+export function getBoards(userId: string): Board[] {
+  const data = localStorage.getItem(getUserStorageKey(userId));
   return data ? JSON.parse(data) : [];
 }
 
-export function getBoardById(id: string): Board | undefined {
-  const boards = getBoards();
+export function getBoardById(userId: string, id: string): Board | undefined {
+  const boards = getBoards(userId);
   return boards.find(board => board.id === id);
 }
 
-export function updateBoard(board: Board): void {
-  const boards = getBoards();
+export function updateBoard(userId: string, board: Board): void {
+  const boards = getBoards(userId);
   const index = boards.findIndex(b => b.id === board.id);
   
   if (index !== -1) {
     boards[index] = board;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(boards));
+    localStorage.setItem(getUserStorageKey(userId), JSON.stringify(boards));
   }
 }
 
-export function deleteBoard(id: string): void {
-  const boards = getBoards();
+export function deleteBoard(userId: string, id: string): void {
+  const boards = getBoards(userId);
   const filteredBoards = boards.filter(board => board.id !== id);
   
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filteredBoards));
+  localStorage.setItem(getUserStorageKey(userId), JSON.stringify(filteredBoards));
   
   // Also delete the associated chat messages
   localStorage.removeItem(`chat-${id}`);
 }
 
 // Helper function to add a widget with chart data to a board
-export function addChartWidget(boardId: string, label: string, data: ChartData[]): void {
-  const board = getBoardById(boardId);
+export function addChartWidget(userId: string,boardId:string, label: string, data: ChartData[]): void {
+  const board = getBoardById(userId, boardId);
   if (board) {
     const newWidget: Widget = {
       id: uuidv4(),
@@ -96,6 +100,6 @@ export function addChartWidget(boardId: string, label: string, data: ChartData[]
       }
     };
     board.widgets.push(newWidget);
-    updateBoard(board);
+    updateBoard(userId, board);
   }
 }
