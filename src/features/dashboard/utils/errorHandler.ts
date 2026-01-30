@@ -40,8 +40,8 @@ export const handleGlobalError = async (error: AppwriteError, navigate?: (path: 
 export const withAuthCheck = async <T>(apiCall: () => Promise<T>): Promise<T> => {
   try {
     return await apiCall();
-  } catch (error: any) {
-    const typedError: AppwriteError = error;
+  } catch (error: unknown) {
+    const typedError = error as AppwriteError;
     // Check if this is an authentication-related error
     if (typedError?.code === 401 || typedError?.type === 'user_not_found' || typedError?.message?.includes('401')) {
       console.log('Session expired or user deleted, redirecting to login...');

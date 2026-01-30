@@ -4,9 +4,13 @@ import BoardPreview from "./BoardPreview";
 import type { Message } from "../../../../../data/boardStorage";
 import { Trash2 } from "lucide-react";
 
+type WidgetData = {
+  label: string;
+  value: number;
+}[];
 type BoardCardProps = {
   title: string;
-  widgets: { type: string; label: string; data?: any }[];
+  widgets: { type: string; label: string; data?: WidgetData }[];
   messages?: Message[];
   onClick?: () => void;
   onDelete?: () => void;

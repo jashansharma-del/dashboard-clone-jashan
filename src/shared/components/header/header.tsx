@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -15,43 +15,43 @@ import {
 import { Button } from "../ui/button/button";
 import { Input } from "../ui/ui/input";
 import authService from "../../../features/dashboard/components/utils/authService";
-import { toggleTheme, getCurrentTheme } from "../../../lib/theme";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
-  const [userName, setUserName] = useState("User");
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    const loginTime = localStorage.getItem("loginTime");
-    const oneDay = 24 * 60 * 60 * 1000;
-
-    // Check if login session is valid
-    if (token && loginTime && Date.now() - parseInt(loginTime) < oneDay) {
-      try {
-        const user = JSON.parse(atob(token));
-        if (user?.name) setUserName(user.name);
-      } catch {
-        console.error("Invalid token");
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("loginTime");
-      }
-    } else {
-      // Session expired
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("loginTime");
-      setUserName("User");
+  
+  const [userName] = useState(() => {
+    const userData = localStorage.getItem("auth_user");
+    if (userData) {
+      const user = JSON.parse(userData);
+      return user.name || "User";
     }
-    
+    return "User";
+  });
+
+  const [isDarkMode] = useState(() => {
     // Check for saved theme preference
-    setIsDarkMode(getCurrentTheme() === 'dark');
-  }, []);
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+      return true;
+    }
+    return false;
+  });
 
   const handleToggleTheme = () => {
-    toggleTheme();
-    setIsDarkMode(getCurrentTheme() === 'dark');
+    const newTheme = !isDarkMode;
+    
+    if (newTheme) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+    
+    // Reload to apply theme changes
+    window.location.reload();
   };
 
   const handleLogout = async () => {
@@ -70,7 +70,7 @@ export default function Header() {
           <img src="/DotsNine.png" alt="Menu" className="w-8 h-8 sm:w-10 sm:h-10" />
           <img src="/Logo@2x.png" alt="Logo" className="w-8 h-6 sm:w-9 sm:h-6" />
           <div className="leading-tight hidden md:block">
-            <p className="text-gray-300 text-xs sm:text-sm">Cisco Commerce</p>
+            <p className="text-gray-300 text-xs sm:text-sm">Disco Commerce</p>
             <p className="text-base sm:text-lg font-semibold">Home</p>
           </div>
         </div>
@@ -119,10 +119,7 @@ export default function Header() {
             {open && (
               <div className="bg-gray-800 text-white absolute right-0 mt-2 w-40 rounded shadow-md z-[100]">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation(); // 🔥 critical for dropdowns
-                    handleLogout();
-                  }}
+                  onClick={handleLogout}
                   className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-700"
                 >
                   <LogOut className="w-4 h-4" />

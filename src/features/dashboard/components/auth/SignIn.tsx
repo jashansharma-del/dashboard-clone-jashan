@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Client, Account, ID } from "appwrite";
+
 import { useForm } from "react-hook-form";
+import {authService } from "../utils/authService";
+import { account } from "./appwriteClient";
 
-// Appwrite Configuration
-const client = new Client()
-  .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT || "https://cloud.appwrite.io/v1")
-  .setProject(import.meta.env.VITE_APPWRITE_PROJECT_ID || "");
 
-export const account = new Account(client);
+
 
 type AuthFormData = {
   name?: string;
@@ -32,17 +30,17 @@ export default function SignIn() {
   } = useForm<AuthFormData>();
 
   useEffect(() => {
+    const checkSession = async () => {
+      try {
+        await account.get();
+        navigate("/boards");
+      } catch {
+        console.log("No active session");
+      }
+    };
+    
     checkSession();
-  }, []);
-
-  const checkSession = async () => {
-    try {
-      await account.get();
-      navigate("/boards");
-    } catch {
-      console.log("No active session");
-    }
-  };
+  }, [navigate]);
 
   const onSubmit = async (data: AuthFormData) => {
     setError("");
@@ -53,19 +51,27 @@ export default function SignIn() {
       const { name, email, password } = data;
 
       if (isRegister) {
-        await account.create(ID.unique(), email, password, name);
-        await account.createEmailPasswordSession(email, password);
+        const user = await authService.register(email, password, name || "");
+        console.log("Registration successful, user:", user);
+        console.log("LocalStorage auth_user:", localStorage.getItem("auth_user"));
 
         setSuccess("✅ Account created successfully!");
         setTimeout(() => navigate("/boards"), 1500);
       } else {
-        await account.createEmailPasswordSession(email, password);
+        const user = await authService.login(email, password);
+        console.log("Login successful, user:", user);
+        console.log("LocalStorage auth_user:", localStorage.getItem("auth_user"));
         navigate("/boards");
       }
-    } catch (err: any) {
-      if (err.code === 409) setError("Account already exists");
-      else if (err.code === 401) setError("Invalid email or password");
-      else setError("Something went wrong");
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'code' in err) {
+        const error = err as { code: number };
+        if (error.code === 409) setError("Account already exists");
+        else if (error.code === 401) setError("Invalid email or password");
+        else setError("Something went wrong");
+      } else {
+        setError("Something went wrong");
+      }
     } finally {
       setLoading(false);
     }
