@@ -72,8 +72,13 @@ export default function SignIn() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 sm:p-8">
+    <div
+      className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: "url('/ciscoimg.jpg')",
+      }}
+    >
+      <div className="bg-black/15 backdrop-blur-[1px] border border-white/20 shadow-lg rounded-xl p-8 text-white">
         <h2 className="text-2xl font-bold text-center mb-2">
           {isRegister ? "Create Account" : "Welcome Back"}
         </h2>
