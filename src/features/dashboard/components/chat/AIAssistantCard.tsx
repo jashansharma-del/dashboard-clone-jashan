@@ -12,7 +12,7 @@ export default function AIAssistantCard({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [width, setWidth] = useState(400); // default width
   const resizingRef = useRef<{ startX: number; startWidth: number } | null>(null);
-  const [isResizing, setIsResizing] = useState(false);
+  // const [isResizing, setIsResizing] = useState(false); // Not currently used
 
   /* ---------------- RIGHT HORIZONTAL RESIZE ---------------- */
   const startResize = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -46,17 +46,17 @@ export default function AIAssistantCard({
     !isFullscreen && !collapsed && "fixed left-2 sm:left-4 md:left-6 bottom-2 sm:bottom-4 max-w-[calc(100vw-1rem)]",
     !isFullscreen && collapsed && "fixed left-2 sm:left-4 md:left-6 bottom-2 sm:bottom-4 h-[52px] max-w-[calc(100vw-1rem)]",
     isFullscreen && !collapsed && "fixed top-16 left-0 right-0 bottom-0 w-full h-[calc(100vh-64px)] z-[9999]",
-    isFullscreen && collapsed && "fixed left-2 sm:left-4 md:left-6 bottom-2 sm:bottom-4 h-[52px] w-[90vw] sm:w-[480px] max-w-[480px]"
+    isFullscreen && collapsed && "fixed left-2 bottom-2 h-[52px] w-[400px]"
   )}
   style={{
-    width: isFullscreen ? "100%" : width,
+    width: isFullscreen && collapsed ? 300 : isFullscreen ? "100%" : width,
     height: collapsed
       ? 52
       : isFullscreen
       ? undefined
       : "calc(100vh - 150px)",
-    transition: isResizing ? "none" : "width 0.3s ease",
-    maxWidth: isFullscreen ? "100%" : "calc(100vw - 1rem)",
+    transition: "width 0.3s ease",
+    maxWidth: isFullscreen && collapsed ? 300 : isFullscreen ? "100%" : "calc(100vw - 1rem)",
   }}
 >
 

@@ -1,7 +1,8 @@
 import { BarChart3, Table } from "lucide-react";
+import MiniChart from './MiniPieChart';
 
 type BoardPreviewProps = {
-  widgets: { type: string; label: string; data?: any }[];
+  widgets: { type: string; label: string; data?: any; chartType?: 'pie' | 'bar' | 'line' }[];
   hasMessages?: boolean;
 };
 
@@ -24,10 +25,13 @@ export default function BoardPreview({ widgets, hasMessages = false }: BoardPrev
                 <span className="truncate text-gray-700 dark:text-gray-200">{widget.label}</span>
               </div>
               
-              {/* Render mini PIE chart if it's a chart widget and has data */}
+              {/* Render mini chart if it's a chart widget and has data */}
               {widget.type === "chart" && widget.data && widget.data.length > 0 && (
                 <div className="flex items-center justify-center mt-1">
-                  <MiniPieChart data={widget.data} />
+                  <MiniChart 
+                    data={widget.data} 
+                    type={widget.chartType || "pie"} 
+                  />
                 </div>
               )}
               
@@ -56,42 +60,5 @@ export default function BoardPreview({ widgets, hasMessages = false }: BoardPrev
         </div>
       )}
     </div>
-  );
-}
-
-/* Mini Pie Chart Component for Preview */
-function MiniPieChart({ data }: { data: { label: string; value: number }[] }) {
-  const total = data.reduce((sum, slice) => sum + slice.value, 0);
-  const colors = ["#3B82F6", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#EC4899"];
-
-  return (
-    <svg width={60} height={60} viewBox="0 0 32 32">
-      {data.map((slice, idx) => {
-        let accumulated = data.slice(0, idx).reduce((sum, s) => sum + s.value, 0);
-        const start = (accumulated / total) * 2 * Math.PI;
-        accumulated += slice.value;
-        const end = (accumulated / total) * 2 * Math.PI;
-
-        const x1 = 16 + 16 * Math.cos(start);
-        const y1 = 16 + 16 * Math.sin(start);
-        const x2 = 16 + 16 * Math.cos(end);
-        const y2 = 16 + 16 * Math.sin(end);
-
-        const largeArcFlag = slice.value / total > 0.5 ? 1 : 0;
-
-        return (
-          <path
-            key={idx}
-            d={`
-              M16 16
-              L ${x1} ${y1}
-              A 16 16 0 ${largeArcFlag} 1 ${x2} ${y2}
-              Z
-            `}
-            fill={colors[idx % colors.length]}
-          />
-        );
-      })}
-    </svg>
   );
 }
