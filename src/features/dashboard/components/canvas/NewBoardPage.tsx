@@ -167,6 +167,7 @@ const BoardCanvasInner = () => {
         zoomOnPinch={true}
         panOnScroll={false}
         fitView
+        fitViewOptions={{ padding: 0.1, includeHiddenNodes: false, duration: 300 }}
       >
         <Background gap={19} size={3} color={document.documentElement.classList.contains('dark') ? '#000000' : '#e5e7eb'} />
       </ReactFlow>

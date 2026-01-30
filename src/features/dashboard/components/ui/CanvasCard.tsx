@@ -12,7 +12,7 @@ export default function CanvasCard({
   return (
     <div
       className={cn(
-        "flex items-center px-4 py-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700",
+        "flex items-center px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700",
         "hover:shadow-md transition-shadow",
         className
       )}

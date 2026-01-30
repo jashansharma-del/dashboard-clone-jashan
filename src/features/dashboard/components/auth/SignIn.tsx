@@ -72,8 +72,8 @@ export default function SignIn() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6 sm:p-8">
         <h2 className="text-2xl font-bold text-center mb-2">
           {isRegister ? "Create Account" : "Welcome Back"}
         </h2>
