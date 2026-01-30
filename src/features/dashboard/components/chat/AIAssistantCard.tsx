@@ -12,7 +12,6 @@ export default function AIAssistantCard({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [width, setWidth] = useState(400); // default width
   const resizingRef = useRef<{ startX: number; startWidth: number } | null>(null);
-  // const [isResizing, setIsResizing] = useState(false); // Not currently used
 
   /* ---------------- RIGHT HORIZONTAL RESIZE ---------------- */
   const startResize = (e: React.MouseEvent<HTMLDivElement>) => {

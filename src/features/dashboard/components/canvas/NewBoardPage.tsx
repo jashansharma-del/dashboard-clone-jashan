@@ -107,7 +107,7 @@ const BoardCanvasInner = () => {
 
       // Create node based on type
       switch (payload.type) {
-        case "pie-chart":
+        case "pie-chart": {
           const pieNode: Node<PieNodeData> = {
             id: `pie-${Date.now()}`,
             type: "pie-chart",
@@ -124,7 +124,8 @@ const BoardCanvasInner = () => {
           };
           addNode(pieNode);
           break;
-        case "bar-chart":
+        }
+        case "bar-chart": {
           const barNode: Node<BarNodeData> = {
             id: `bar-${Date.now()}`,
             type: "bar-chart",
@@ -141,7 +142,8 @@ const BoardCanvasInner = () => {
           };
           addNode(barNode);
           break;
-        case "line-chart":
+        }
+        case "line-chart": {
           const lineNode: Node<LineNodeData> = {
             id: `line-${Date.now()}`,
             type: "line-chart",
@@ -158,6 +160,7 @@ const BoardCanvasInner = () => {
           };
           addNode(lineNode);
           break;
+        }
         default:
           console.error("❌ Unsupported chart type:", payload.type);
           return;
@@ -181,7 +184,7 @@ const BoardCanvasInner = () => {
       if (!stored) return null;
 
       const messages = JSON.parse(stored);
-      const firstUserMsg = messages.find((msg: any) => msg.role === "user");
+      const firstUserMsg = messages.find((msg: { role: string; text: string }) => msg.role === "user");
 
     return firstUserMsg?.text || null;
   } catch {

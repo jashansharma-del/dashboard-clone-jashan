@@ -1,7 +1,7 @@
 import SectionHeader from "../../shared/components/ui/ui/SectionHeader";
 import BoardCard from "../../shared/components/ui/ui/BoardCard";
 import { useNavigate } from "react-router-dom";
-import { getBoards, createBoard, deleteBoard, type Board, type Widget } from "../../../data/boardStorage";
+import { getBoards, createBoard, deleteBoard, type Board, type Widget, type Message, type ChartData } from "../../../data/boardStorage";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -16,16 +16,37 @@ import { Button } from "@/components/ui/button";
 export default function BoardsPage() {
 
      const navigate = useNavigate();
-     const [boards, setBoards] = useState<Board[]>(getBoards());
+     
+     const getCurrentUserId = () => {
+    const userData = localStorage.getItem("auth_user");
+    if (userData) {
+      const user = JSON.parse(userData);
+      return user.id;
+    }
+    return null;
+  };
+     
+     const [boards, setBoards] = useState<Board[]>(() => {
+       const userId = getCurrentUserId();
+       return userId ? getBoards(userId) : [];
+     });
+     
      const [themeVersion, setThemeVersion] = useState(0);
      const [isTransitioning, setIsTransitioning] = useState(false);
      const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
 
+
+
+     
      // Listen for localStorage changes
      useEffect(() => {
        const handleStorageChange = () => {
-         setBoards(getBoards());
-       };
+        const userId = getCurrentUserId();
+        if(userId) {
+          setBoards(getBoards(userId));
+        }
+         
+      };
 
        // Listen for changes to the boards in localStorage
        window.addEventListener('storage', handleStorageChange);
@@ -59,9 +80,13 @@ export default function BoardsPage() {
 
        return () => observer.disconnect();
      }, []);
-
+  
   const handleCreateBoard = () => {
-    const newBoard = createBoard();
+    const userId = getCurrentUserId();
+    if (!userId){
+      return;
+    }
+    const newBoard = createBoard(userId);
     navigate(`/newboard/${newBoard.id}`);
   };
   
@@ -77,37 +102,35 @@ export default function BoardsPage() {
 
   // 🆕 Helper function to extract chart data from chat messages
   const getBoardWidgets = (board: Board) => {
-    const widgets: any[] = [];
+    const widgets: Array<{ type: string; label: string; data?: ChartData[] }> = [];
     
     // Load chat messages from separate storage
     const chatMessages = loadChatMessages(board.id);
     
     // Extract all charts from chat messages
     if (chatMessages && chatMessages.length > 0) {
-      // Find all assistant messages with graphData
-      const chartMessages = chatMessages.filter((msg: any) => 
+      const chartMessages = chatMessages.filter((msg: Message) => 
         msg.role === "assistant" && msg.graphData
       );
       
-      chartMessages.forEach((msg: any, index: number) => {
+      chartMessages.forEach((msg: Message, index: number) => {
         widgets.push({
           type: "chart",
           label: `Chart ${index + 1}`,
-          data: msg.graphData,
-          chartType: msg.chartType || "pie"
+          data: msg.graphData
         });
       });
     }
     
-    // If no charts found in messages, show the actual widgets
-    if (widgets.length === 0 && board.widgets && board.widgets.length > 0) {
-      return board.widgets.map((w: Widget) => ({ 
-        type: w.type, 
-        label: typeof w.props?.label === 'string' ? w.props?.label || w.type : w.type,
-        data: w.props?.data
-      }));
-    }
-    
+   // Add board widgets regardless of chat messages
+  if (board.widgets && board.widgets.length > 0) {
+    const boardWidgets = board.widgets.map((w: Widget) => ({ 
+      type: w.type, 
+      label: typeof w.props?.label === 'string' ? w.props?.label || w.type : w.type,
+      data: w.props?.data
+    }));
+    return [...widgets, ...boardWidgets];
+  }
     return widgets;
   };
 
@@ -117,9 +140,12 @@ export default function BoardsPage() {
 
   const confirmDelete = () => {
     if (boardToDelete) {
-      deleteBoard(boardToDelete);
-      // Manually refresh the boards list after deletion
-      setBoards(getBoards());
+      const userId = getCurrentUserId();
+      if(userId) {
+        deleteBoard(userId, boardToDelete);
+        setBoards(getBoards(userId));
+      }
+     
       setBoardToDelete(null);
     }
   };
@@ -135,7 +161,7 @@ export default function BoardsPage() {
   }
 
   const firstUserMessage = messages.find(
-    (msg: any) => msg.role === "user" && msg.text.trim() !== ""
+    (msg: Message) => msg.role === "user" && msg.text.trim() !== ""
   );
 
   return firstUserMessage
