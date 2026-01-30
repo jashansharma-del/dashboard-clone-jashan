@@ -15,7 +15,35 @@ export const authService = {
     try {
       return await account.get();
     } catch (error) {
+      console.error('Authentication error:', error);
       return null;
+    }
+  },
+
+  // Check if user is authenticated
+  async isAuthenticated() {
+    try {
+      const user = await account.get();
+      return !!user;
+    } catch (error) {
+      console.warn('User not authenticated:', error);
+      return false;
+    }
+  },
+
+  // Method to verify session validity
+  async verifySession() {
+    try {
+      const user = await account.get();
+      return { isValid: true, user };
+    } catch (error: any) {
+      // If session is invalid (401), redirect to login
+      if (error?.code === 401 || error?.type === 'user_not_found') {
+        console.log('Session expired or user deleted, redirecting to login');
+        return { isValid: false, user: null };
+      }
+      console.error('Error verifying session:', error);
+      return { isValid: false, user: null };
     }
   },
 

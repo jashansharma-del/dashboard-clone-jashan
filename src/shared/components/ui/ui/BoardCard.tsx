@@ -61,7 +61,7 @@ export default function BoardCard({ title, widgets, messages = [], onClick, onDe
 
   return (
     <div 
-      className={`w-[420px] bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-all duration-300 relative ${onClick ? 'hover:scale-[1.02]' : ''}`}
+      className={`w-[300px] sm:w-[350px] bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-all duration-300 relative ${onClick ? 'hover:scale-[1.02]' : ''}`}
       onClick={onClick}
     >
       {onDelete && (
@@ -82,7 +82,7 @@ export default function BoardCard({ title, widgets, messages = [], onClick, onDe
         </div>
       </div>
 
-      <div className="h-44 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden relative">
+      <div className="h-32 sm:h-44 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden relative">
         {image && (
           <img 
             src={image} 
