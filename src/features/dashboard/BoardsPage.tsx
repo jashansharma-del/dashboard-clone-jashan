@@ -3,6 +3,16 @@ import BoardCard from "../../shared/components/ui/ui/BoardCard";
 import { useNavigate } from "react-router-dom";
 import { getBoards, createBoard, deleteBoard, type Board, type Widget } from "../../../data/boardStorage";
 import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export default function BoardsPage() {
 
@@ -10,6 +20,7 @@ export default function BoardsPage() {
      const [boards, setBoards] = useState<Board[]>(getBoards());
      const [themeVersion, setThemeVersion] = useState(0);
      const [isTransitioning, setIsTransitioning] = useState(false);
+     const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
 
      // Listen for localStorage changes
      useEffect(() => {
@@ -101,11 +112,20 @@ export default function BoardsPage() {
   };
 
   const handleDeleteBoard = (boardId: string) => {
-    if (window.confirm("Are you sure you want to delete this board? This action cannot be undone.")) {
-      deleteBoard(boardId);
+    setBoardToDelete(boardId);
+  };
+
+  const confirmDelete = () => {
+    if (boardToDelete) {
+      deleteBoard(boardToDelete);
       // Manually refresh the boards list after deletion
       setBoards(getBoards());
+      setBoardToDelete(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setBoardToDelete(null);
   };
   function getBoardTitleFromLocalMessages(boardId: string) {
   const messages = loadChatMessages(boardId);
@@ -127,13 +147,14 @@ export default function BoardsPage() {
 
   
   return (
+    <>
     <div 
-      className={`w-screen max-w-full overflow-x-hidden bg-background text-foreground transition-all duration-300 ${
+      className={`min-h-screen w-full max-w-full overflow-x-hidden bg-background text-foreground transition-all duration-300 ${
         isTransitioning ? 'opacity-95' : 'opacity-100'
       }`} 
       key={themeVersion}
     >
-      <div className="p-6 space-y-12 max-w-full">
+      <div className="p-4 sm:p-6 space-y-8 sm:space-y-12 max-w-full">
 
         {/* MY BOARDS */}
         <section className="max-w-full">
@@ -146,12 +167,12 @@ export default function BoardsPage() {
           }}
         />
 
-          <div className="overflow-x-auto overflow-y-hidden pb-4 -mx-6 px-6 max-w-full scrollbar-hide">
-            <div className="flex gap-6 w-max">
+            <div className="overflow-x-auto overflow-y-hidden pb-4 -mx-6 px-6 max-w-full scrollbar-hide">
+            <div className="flex gap-4 sm:gap-6 min-w-max">
               {boards.map((board: Board) => (
                 <div 
                   key={board.id} 
-                  className="flex-shrink-0 transition-all duration-300"
+                  className="flex-shrink-0 transition-all duration-300 w-[350px] sm:w-[420px]"
                 >
                   <BoardCard
                     title={getBoardTitleFromLocalMessages(board.id)}
@@ -194,5 +215,34 @@ export default function BoardsPage() {
         }
       `}</style>
     </div>
+
+    {/* Delete Confirmation Dialog */}
+    <Dialog open={!!boardToDelete} onOpenChange={(open) => !open && cancelDelete()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Confirm Deletion</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete this board? This action cannot be undone and all data will be permanently removed.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="sm:justify-start">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={cancelDelete}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="button" 
+            variant="destructive" 
+            onClick={confirmDelete}
+          >
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

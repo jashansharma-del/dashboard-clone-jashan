@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useNavigate } from "react-router-dom";
 import { authService } from "../../../features/dashboard/components/utils/authService";
 
 interface ProtectedRouteProps {
@@ -9,6 +9,7 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     checkAuth();
@@ -16,10 +17,19 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   const checkAuth = async () => {
     try {
-      const user = await authService.getCurrentUser();
-      setIsAuthenticated(!!user);
+      const { isValid } = await authService.verifySession();
+      setIsAuthenticated(isValid);
+      
+      // If session is invalid, ensure we redirect to login
+      if (!isValid) {
+        setTimeout(() => {
+          navigate("/");
+        }, 500); // Small delay to ensure state update before navigation
+      }
     } catch (error) {
+      console.error('Error checking auth:', error);
       setIsAuthenticated(false);
+      navigate("/");
     } finally {
       setLoading(false);
     }
@@ -31,7 +41,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">Checking authentication...</p>
         </div>
       </div>
     );

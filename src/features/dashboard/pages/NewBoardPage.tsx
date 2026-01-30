@@ -10,7 +10,7 @@ export default function NewBoardPage() {
 
   return (
     <DragDropWrapper boardId={boardId}>
-      <div className="h-[calc(100vh-64px)] relative bg-background text-foreground">
+      <div className="h-[calc(100vh-4rem)] relative bg-background text-foreground min-h-[500px]">
         <BoardCanvas />
       </div>
     </DragDropWrapper>
