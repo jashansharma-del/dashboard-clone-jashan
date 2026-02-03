@@ -2,6 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { Send, Mic } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { useParams } from "react-router-dom";
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '../../../../store';
+import { setActiveChat, addMessage, fetchChatHistory } from '../../../../store/chatSlice';
+import { updateMessage } from '../../../../store/chatSlice';
 
 /* ======================================================
    TYPES
@@ -28,22 +32,7 @@ const dummyGraphData: Slice[] = [
   { label: "Option C", value: 20 },
 ];
 
-/* ======================================================
-   SAFE LOAD FROM LOCAL STORAGE
-====================================================== */
-const loadMessages = (boardId?: string): Message[] => {
-  try {
-    if (!boardId) {
-      const storedId = localStorage.getItem("currentBoardId");
-      if (!storedId) return [];
-      boardId = storedId;
-    }
-    const stored = localStorage.getItem(`chat-${boardId}`);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-};
+
 
 /* ======================================================
    LOADING DOTS COMPONENT
@@ -323,28 +312,19 @@ const WelcomeScreen = ({ onSuggestionClick }: { onSuggestionClick: (text: string
 export default function AIAssistantBody() {
   const { boardId } = useParams<{ boardId: string }>();
 
-  const [messages, setMessages] = useState<Message[]>(() => loadMessages(boardId));
+  const dispatch = useDispatch<AppDispatch>();
+  const { messages, activeChatId } = useSelector((state: RootState) => state.chat);
   const [input, setInput] = useState("");
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const boardIdRef = useRef<string>("");
 
-  /* -------- INIT BOARD ID -------- */
+  /* -------- SET ACTIVE CHAT AND LOAD HISTORY ON MOUNT -------- */
   useEffect(() => {
-    let id = boardId;
-    if (!id) {
-      const storedId = localStorage.getItem("currentBoardId");
-      id = storedId || uuidv4();
-      localStorage.setItem("currentBoardId", id);
+    if (boardId) {
+      dispatch(setActiveChat(boardId));
+      dispatch(fetchChatHistory(boardId));
     }
-    boardIdRef.current = id;
-  }, [boardId]);
-
-  /* -------- SAVE CHAT -------- */
-  useEffect(() => {
-    if (!boardIdRef.current) return;
-    localStorage.setItem(`chat-${boardIdRef.current}`, JSON.stringify(messages));
-  }, [messages]);
+  }, [boardId, dispatch]);
 
   /* -------- AUTO SCROLL -------- */
   useEffect(() => {
@@ -356,7 +336,7 @@ export default function AIAssistantBody() {
 
   /* -------- SEND MESSAGE -------- */
   const handleSend = () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !activeChatId) return;
 
     const userMsg: Message = {
       id: uuidv4(),
@@ -364,6 +344,10 @@ export default function AIAssistantBody() {
       role: "user",
     };
 
+    dispatch(addMessage(userMsg));
+    setInput("");
+
+    // Create and add loading assistant message
     const assistantMsgId = uuidv4();
     const loadingMsg: Message = {
       id: assistantMsgId,
@@ -371,30 +355,26 @@ export default function AIAssistantBody() {
       role: "assistant",
       isLoading: true,
     };
+    
+    dispatch(addMessage(loadingMsg));
 
-    setMessages((prev) => [...prev, userMsg, loadingMsg]);
-    setInput("");
-
-    // Simulate loading delay and then show the complete message
+    // Simulate loading delay and then update the loading message
     setTimeout(() => {
       // Randomly select a chart type
       const chartTypes: ('pie' | 'bar' | 'line')[] = ['pie', 'bar', 'line'];
       const randomChartType = chartTypes[Math.floor(Math.random() * chartTypes.length)];
       
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === assistantMsgId
-            ? { 
-                ...msg, 
-                text: "Here is the analysis of your request:",
-                isLoading: false, 
-                graphData: dummyGraphData,
-                chartType: randomChartType
-              }
-            : msg
-        )
-      );
-    }, 100); // 2 seconds loading time
+      // Update the existing loading message with the complete content
+      dispatch(updateMessage({
+        id: assistantMsgId,
+        updates: {
+          text: "Here is the analysis of your request:",
+          isLoading: false,
+          graphData: dummyGraphData,
+          chartType: randomChartType
+        }
+      }));
+    }, 2000); // 2 seconds loading time
   };
 
   /* ======================================================

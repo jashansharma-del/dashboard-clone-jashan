@@ -44,7 +44,15 @@ export const withAuthCheck = async <T>(apiCall: () => Promise<T>): Promise<T> =>
     const typedError = error as AppwriteError;
     // Check if this is an authentication-related error
     if (typedError?.code === 401 || typedError?.type === 'user_not_found' || typedError?.message?.includes('401')) {
-      console.log('Session expired or user deleted, redirecting to login...');
+      console.log('JWT/session expired or user deleted, redirecting to login...');
+      console.log('JWT in storage before cleanup:', !!localStorage.getItem('appwrite_jwt'));
+      
+      // Clear local authentication data
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('appwrite_jwt');
+      
+      console.log('JWT after cleanup:', !!localStorage.getItem('appwrite_jwt'));
+      
       // Redirect to login
       window.location.href = '/';
       throw error;

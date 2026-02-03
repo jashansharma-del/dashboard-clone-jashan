@@ -1,71 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authService } from '../components/utils/authService';
-import { AuthContext, type User } from './context';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState, AppDispatch } from '../../../store';
+import { login, logout, checkAuthStatus } from '../../../store/authSlice';
+import { AuthContext } from './context';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
+  const dispatch = useDispatch<AppDispatch>();
+  const { user, isAuthenticated, loading } = useSelector((state: RootState) => state.auth);
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkInitialAuthStatus();
-  }, []);
+    // Check initial auth status on app load
+    dispatch(checkAuthStatus());
+  }, [dispatch]);
 
-  const checkInitialAuthStatus = async () => {
-    try {
-      const { isValid, user: currentUser } = await authService.verifySession();
-      
-      if (isValid && currentUser) {
-        setUser(currentUser);
-        setIsAuthenticated(true);
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
-      }
-    } catch (error) {
-      console.error('Error checking initial auth status:', error);
-      setUser(null);
-      setIsAuthenticated(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Set up interval to periodically check session validity
-  useEffect(() => {
-    if (!loading && isAuthenticated) {
-      const interval = setInterval(async () => {
-        const { isValid } = await authService.verifySession();
-        
-        if (!isValid) {
-          // User's credentials were likely deleted from Appwrite
-          console.log('Session invalidated (likely user deleted from Appwrite)');
-          setUser(null);
-          setIsAuthenticated(false);
-          clearInterval(interval);
-          navigate('/', { replace: true });
-        }
-      }, 30000); // Check every 30 seconds
-
-      // Cleanup function
-      return () => {
-        if (interval) {
-          clearInterval(interval);
-        }
-      };
-    }
-  }, [loading, isAuthenticated, navigate]);
-
-  // Listen for storage events (in case user logs out from another tab)
+  // Handle logout across tabs
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'logout' && e.newValue === 'true') {
         // Another tab logged out, sync the state
-        setUser(null);
-        setIsAuthenticated(false);
+        dispatch(logout());
         navigate('/', { replace: true });
       }
     };
@@ -74,28 +30,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [navigate]);
+  }, [dispatch, navigate]);
 
-  const login = async (email: string, password: string) => {
+  const handleLogin = async (email: string, password: string) => {
     try {
-      await authService.login(email, password);
-      const userData = await authService.getCurrentUser();
-      setUser(userData);
-      setIsAuthenticated(true);
-      // Clear logout flag if present
-      localStorage.removeItem('logout');
-      return { success: true };
+      const result = await dispatch(login({ email, password }));
+      if (login.fulfilled.match(result)) {
+        localStorage.removeItem('logout');
+        return { success: true };
+      } else {
+        return { success: false, error: result.payload };
+      }
     } catch (error) {
       console.error('Login failed:', error);
       return { success: false, error };
     }
   };
 
-  const logout = async () => {
+  const handleLogout = async () => {
     try {
-      await authService.logout();
-      setUser(null);
-      setIsAuthenticated(false);
+      await dispatch(logout());
       // Set a flag in localStorage to signal other tabs
       localStorage.setItem('logout', 'true');
       setTimeout(() => {
@@ -111,8 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isAuthenticated,
     loading,
-    login,
-    logout,
+    login: handleLogin,
+    logout: handleLogout,
   };
 
   return (
