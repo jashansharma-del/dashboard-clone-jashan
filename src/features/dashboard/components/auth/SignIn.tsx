@@ -1,12 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '../../../../store';
+import { login as loginThunk, register as registerThunk } from '../../../../store/authSlice';
 
 import { useForm } from "react-hook-form";
-import {authService } from "../utils/authService";
-import { account } from "./appwriteClient";
-
-
-
 
 type AuthFormData = {
   name?: string;
@@ -16,11 +14,11 @@ type AuthFormData = {
 
 export default function SignIn() {
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
+  const { loading, error } = useSelector((state: RootState) => state.auth);
 
-  const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isRegister, setIsRegister] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const {
     register,
@@ -29,51 +27,22 @@ export default function SignIn() {
     formState: { errors, isSubmitting },
   } = useForm<AuthFormData>();
 
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        await account.get();
-        navigate("/boards");
-      } catch {
-        console.log("No active session");
-      }
-    };
-    
-    checkSession();
-  }, [navigate]);
-
   const onSubmit = async (data: AuthFormData) => {
-    setError("");
     setSuccess("");
-    setLoading(true);
 
-    try {
-      const { name, email, password } = data;
+    const { name, email, password } = data;
 
-      if (isRegister) {
-        const user = await authService.register(email, password, name || "");
-        console.log("Registration successful, user:", user);
-        console.log("LocalStorage auth_user:", localStorage.getItem("auth_user"));
-
-        setSuccess("✅ Account created successfully!");
+    if (isRegister) {
+      const result = await dispatch(registerThunk({ email, password, name: name || "" }));
+      if (registerThunk.fulfilled.match(result)) {
+        setSuccess("Account created successfully!");
         setTimeout(() => navigate("/boards"), 1500);
-      } else {
-        const user = await authService.login(email, password);
-        console.log("Login successful, user:", user);
-        console.log("LocalStorage auth_user:", localStorage.getItem("auth_user"));
+      }
+    } else {
+      const result = await dispatch(loginThunk({ email, password }));
+      if (loginThunk.fulfilled.match(result)) {
         navigate("/boards");
       }
-    } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'code' in err) {
-        const error = err as { code: number };
-        if (error.code === 409) setError("Account already exists");
-        else if (error.code === 401) setError("Invalid email or password");
-        else setError("Something went wrong");
-      } else {
-        setError("Something went wrong");
-      }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -133,7 +102,6 @@ export default function SignIn() {
           className="text-center mt-4 text-blue-600 cursor-pointer"
           onClick={() => {
             setIsRegister(!isRegister);
-            setError("");
             setSuccess("");
             reset();
           }}

@@ -1,7 +1,3 @@
-import SectionHeader from "../../shared/components/ui/ui/SectionHeader";
-import BoardCard from "../../shared/components/ui/ui/BoardCard";
-import { useNavigate } from "react-router-dom";
-import { getBoards, createBoard, deleteBoard, type Board, type Widget, type Message, type ChartData } from "../../../data/boardStorage";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -12,6 +8,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import SectionHeader from "../../shared/components/ui/ui/SectionHeader";
+import BoardCard from "../../shared/components/ui/ui/BoardCard";
+import { useNavigate } from "react-router-dom";
+import { getBoards, createBoard, deleteBoard, type Board, type Widget, type Message, type ChartData } from "../../../data/boardStorage";
 
 export default function BoardsPage() {
 
@@ -81,12 +81,13 @@ export default function BoardsPage() {
        return () => observer.disconnect();
      }, []);
   
-  const handleCreateBoard = () => {
+  const  handleCreateBoard = () => {
     const userId = getCurrentUserId();
     if (!userId){
       return;
     }
     const newBoard = createBoard(userId);
+    setBoards(getBoards(userId)); // Update state immediately
     navigate(`/newboard/${newBoard.id}`);
   };
   

@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '../../../store';
+import { toggleTheme } from '../../../store/uiSlice';
+import { logout } from '../../../store/authSlice';
 import {
   Plus,
   Search,
@@ -14,55 +18,37 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/button/button";
 import { Input } from "../ui/ui/input";
-import authService from "../../../features/dashboard/components/utils/authService";
+
 
 export default function Header() {
-  const [open, setOpen] = useState(false);
+  const dispatch = useDispatch<AppDispatch>();
+  const { theme } = useSelector((state: RootState) => state.ui);
   const navigate = useNavigate();
   
-  const [userName] = useState(() => {
-    const userData = localStorage.getItem("auth_user");
-    if (userData) {
-      const user = JSON.parse(userData);
-      return user.name || "User";
-    }
-    return "User";
-  });
-
-  const [isDarkMode] = useState(() => {
-    // Check for saved theme preference
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-      return true;
-    }
-    return false;
+  const [open, setOpen] = useState(false);
+  
+  const userName = useSelector((state: RootState) => {
+    return state.auth.user?.name || "User";
   });
 
   const handleToggleTheme = () => {
-    const newTheme = !isDarkMode;
-    
-    if (newTheme) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-    
-    // Reload to apply theme changes
-    window.location.reload();
+    dispatch(toggleTheme());
   };
 
   const handleLogout = async () => {
-  try {
-    console.log("Logout clicked");
-    await authService.logout();
-    navigate("/");
-  } catch (err) {
-    console.error(err);
-  }
-};
+    try {
+      console.log("Logout clicked");
+      await dispatch(logout());
+      // Set a flag in localStorage to signal other tabs
+      localStorage.setItem('logout', 'true');
+      setTimeout(() => {
+        localStorage.removeItem('logout');
+      }, 100); // Clear immediately after other tabs detect it
+      navigate('/', { replace: true });
+    } catch (err) {
+      console.error(err);
+    }
+  };
   return (
     <header className="h-16 bg-gradient-to-r from-gray-800 to-gray-900 flex items-center px-6 transition-colors duration-300">
       <div className="flex w-full items-center justify-between text-white">
@@ -96,7 +82,7 @@ export default function Header() {
             onClick={handleToggleTheme}
             className="w-5 h-5 cursor-pointer flex items-center justify-center flex-shrink-0"
           >
-            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </div>
           
           <Wand2 className="w-5 h-5 cursor-pointer flex-shrink-0 hidden lg:flex" />
