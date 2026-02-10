@@ -8,7 +8,7 @@ interface Node {
   type: string;
   position: { x: number; y: number };
   data: {
-    graphData?: any[];
+    graphData?: unknown[];
     width?: number;
     height?: number;
     [key: string]: unknown;

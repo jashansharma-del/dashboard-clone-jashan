@@ -5,25 +5,25 @@ import type { RootState, AppDispatch } from '../store';
 import { setTheme } from '../store/uiSlice';
 import { checkAuthStatus } from '../store/authSlice';
 import { setDarkTheme, setLightTheme } from "../lib/theme";
-import { authService } from "../features/dashboard/components/utils/authService";
 
 import Header from "../shared/components/header/header";
 import BoardsPage from "../features/dashboard/BoardsPage";
 import NewBoardPage from "../features/dashboard/pages/NewBoardPage";
 import SignIn from "../features/dashboard/components/auth/SignIn";
+import WebexCallback from "../features/dashboard/components/auth/WebexCallback";
 import ProtectedRoute from "../features/dashboard/components/ProtectedRoute";
 //import { AuthProvider } from "../features/dashboard/contexts/AuthContext";
 
 export default function App() {
   const location = useLocation();
+  
 
   // Hide header only on public entry page
-  const hideHeader = location.pathname === "/";
+  const hideHeader = location.pathname === "/" || location.pathname === "/webex/callback";
 
   const dispatch = useDispatch<AppDispatch>();
   const { theme } = useSelector((state: RootState) => state.ui);
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
-  const [themeInitialized, setThemeInitialized] = useState(false);
 
   // Initialize auth status on app start
   useEffect(() => {
@@ -73,25 +73,26 @@ export default function App() {
         <Routes>
           {/* ✅ PUBLIC ENTRY ROUTE */}
           <Route path="/" element={isAuthenticated ? <Navigate to="/boards" /> : <SignIn />} />
+          <Route path="/webex/callback" element={<WebexCallback />} />
 
-          {/* 🔒 PROTECTED ROUTES */}
-          <Route
-            path="/boards"
-            element={
-              <ProtectedRoute>
-                <BoardsPage />
-              </ProtectedRoute>
-            }
-          />
+        {/* 🔒 PROTECTED ROUTES */}
+        <Route
+          path="/boards"
+          element={
+            <ProtectedRoute>
+              <BoardsPage />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route
-            path="/newboard"
-            element={
-              <ProtectedRoute>
-                <NewBoardPage />
-              </ProtectedRoute>
-            }
-          />
+        <Route
+          path="/newboard"
+          element={
+            <ProtectedRoute>
+              <NewBoardPage />
+            </ProtectedRoute>
+          }
+        />
 
           <Route
             path="/newboard/:boardId"

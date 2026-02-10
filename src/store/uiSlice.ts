@@ -32,7 +32,6 @@ const uiSlice = createSlice({
   reducers: {
     toggleTheme: (state) => {
       state.theme = state.theme === 'light' ? 'dark' : 'light';
-
       // Apply theme to DOM
       if (state.theme === 'dark') {
         document.documentElement.classList.add('dark');
@@ -42,7 +41,6 @@ const uiSlice = createSlice({
     },
     setTheme: (state, action: PayloadAction<'light' | 'dark'>) => {
       state.theme = action.payload;
-
       // Apply theme to DOM
       if (action.payload === 'dark') {
         document.documentElement.classList.add('dark');

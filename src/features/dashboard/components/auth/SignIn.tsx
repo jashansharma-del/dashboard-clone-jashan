@@ -5,6 +5,8 @@ import type { AppDispatch, RootState } from '../../../../store';
 import { login as loginThunk, register as registerThunk } from '../../../../store/authSlice';
 
 import { useForm } from "react-hook-form";
+import { startWebexLogin } from "./webexAuth";
+
 
 type AuthFormData = {
   name?: string;
@@ -19,6 +21,8 @@ export default function SignIn() {
 
   const [success, setSuccess] = useState("");
   const [isRegister, setIsRegister] = useState(false);
+  const [webexLoading, setWebexLoading] = useState(false);
+  const [webexError, setWebexError] = useState("");
 
   const {
     register,
@@ -29,6 +33,7 @@ export default function SignIn() {
 
   const onSubmit = async (data: AuthFormData) => {
     setSuccess("");
+    setWebexError("");
 
     const { name, email, password } = data;
 
@@ -46,6 +51,18 @@ export default function SignIn() {
     }
   };
 
+  const handleWebexLogin = async () => {
+    setWebexError("");
+    setWebexLoading(true);
+    try {
+      await startWebexLogin();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Webex sign-in failed.";
+      setWebexError(message);
+      setWebexLoading(false);
+    }
+  };
+
   return (
     <div
       className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
@@ -59,7 +76,27 @@ export default function SignIn() {
         </h2>
 
         {error && <p className="text-red-500 text-center">{error}</p>}
+        {webexError && <p className="text-red-500 text-center">{webexError}</p>}
         {success && <p className="text-green-500 text-center">{success}</p>}
+
+        {!isRegister && (
+          <>
+            <button
+              type="button"
+              onClick={handleWebexLogin}
+              disabled={webexLoading}
+              className="w-full border border-white/40 bg-white/10 text-white py-2 rounded hover:bg-white/20 transition"
+            >
+              {webexLoading ? "Redirecting to Webex..." : "Continue with Webex"}
+            </button>
+
+            <div className="flex items-center gap-3 text-xs uppercase text-white/70">
+              <span className="flex-1 h-px bg-white/20" />
+              <span>or</span>
+              <span className="flex-1 h-px bg-white/20" />
+            </div>
+          </>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {isRegister && (
@@ -94,7 +131,7 @@ export default function SignIn() {
             disabled={loading || isSubmitting}
             className="w-full bg-blue-600 text-white py-2 rounded"
           >
-            {isRegister ? "Create Account" : "Sign In"}
+            {loading ? "Processing..." : (isRegister ? "Create Account" : "Sign In")}
           </button>
         </form>
 
@@ -103,6 +140,8 @@ export default function SignIn() {
           onClick={() => {
             setIsRegister(!isRegister);
             setSuccess("");
+            setWebexError("");
+            setWebexLoading(false);
             reset();
           }}
         >

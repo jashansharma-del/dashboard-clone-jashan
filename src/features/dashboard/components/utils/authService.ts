@@ -1,5 +1,7 @@
 import { Client, Account, Databases, ID } from "appwrite";
 
+import { clearWebexSession } from "../auth/webexAuth";
+
 // Initialize Appwrite Client
 export const client = new Client()
   .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
@@ -25,20 +27,47 @@ export const authService = {
   async login(email: string, password: string) {
     await account.createEmailPasswordSession(email, password);
     const user = await account.get();
-    return user;
-  },
-  // Register
-  async register(email: string, password: string, name: string) {
-    await account.create(ID.unique(), email, password, name);
-    await account.createEmailPasswordSession(email, password);
 
-    const user = await account.get();
+    localStorage.setItem(
+      "auth_user",
+      JSON.stringify({
+        id: user.$id,
+        email: user.email,
+        name: user.name,
+      })
+    );
+
     return user;
   },
+
+   // Register
+  async register(email: string, password: string, name: string) {
+  await account.create(ID.unique(), email, password, name);
+  await account.createEmailPasswordSession(email, password);
+
+  const user = await account.get();
+
+  localStorage.setItem(
+    "auth_user",
+    JSON.stringify({
+      id: user.$id,
+      email: user.email,
+      name: user.name, // ✅ REQUIRED
+    })
+  );
+
+  return user;
+},
 
   // Logout
   async logout() {
-    await account.deleteSession("current");
+    try {
+      await account.deleteSession("current");
+    } catch (error) {
+      console.warn("Failed to delete Appwrite session:", error);
+    }
+    localStorage.removeItem("auth_user");
+    clearWebexSession();
   },
 
   // Verify session

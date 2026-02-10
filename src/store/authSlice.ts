@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { authService } from '../features/dashboard/components/utils/authService';
+import { isWebexSessionValid } from '../features/dashboard/components/auth/webexAuth';
 
 // Define the user type
 interface User {
@@ -51,7 +52,7 @@ export const register = createAsyncThunk(
       return user;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Registration failed');
-    }
+    } 
   }
 );
 
@@ -73,12 +74,32 @@ export const logout = createAsyncThunk(
 export const checkAuthStatus = createAsyncThunk(
   'auth/checkAuthStatus',
   async () => {
-    try {
-      const user = await authService.getCurrentUser();
+    const user = await authService.getCurrentUser();
+    if (user) {
       return user;
-    } catch {
-      return null;
     }
+
+    // If Appwrite session fails, check if we have user data in localStorage
+    const storedUser = localStorage.getItem('auth_user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        if (parsedUser.provider === 'webex') {
+          if (!isWebexSessionValid()) {
+            return null;
+          }
+        }
+        // Return a User object that matches our interface
+        return {
+          $id: parsedUser.id,
+          email: parsedUser.email,
+          name: parsedUser.name,
+        };
+      } catch (parseError) {
+        console.error('Error parsing stored user data:', parseError);
+      }
+    }
+    return null;
   }
 );
 
@@ -147,8 +168,35 @@ const authSlice = createSlice({
           state.user = action.payload;
           state.isAuthenticated = true;
         } else {
-          state.user = null;
-          state.isAuthenticated = false;
+          // Avoid wiping an active session if a later check resolves null.
+          if (state.isAuthenticated && state.user) {
+            state.loading = false;
+            return;
+          }
+
+          const storedUser = localStorage.getItem('auth_user');
+          if (storedUser) {
+            try {
+              const parsedUser = JSON.parse(storedUser);
+              if (parsedUser.provider === 'webex' && !isWebexSessionValid()) {
+                state.user = null;
+                state.isAuthenticated = false;
+              } else {
+                state.user = {
+                  $id: parsedUser.id,
+                  email: parsedUser.email,
+                  name: parsedUser.name,
+                };
+                state.isAuthenticated = true;
+              }
+            } catch {
+              state.user = null;
+              state.isAuthenticated = false;
+            }
+          } else {
+            state.user = null;
+            state.isAuthenticated = false;
+          }
         }
         state.loading = false;
       })
