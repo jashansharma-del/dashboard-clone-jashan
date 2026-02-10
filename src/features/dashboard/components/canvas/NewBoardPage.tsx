@@ -195,11 +195,65 @@ const BoardCanvasInner = () => {
   return (
     <div
       ref={wrapperRef}
-      className="absolute inset-0 bg-background"
+      className="absolute inset-0 overflow-hidden bg-background"
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragLeave={onDragLeave}
     >
+      {/* Reference-matched dotted grid + soft vignette (theme-specific) */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 hidden dark:block"
+        style={{
+          backgroundImage:
+            "radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(180deg, rgba(18,22,31,0.9), rgba(18,22,31,0.95))",
+          backgroundSize: "16px 16px, 100% 100%",
+          backgroundPosition: "0 0, 0 0",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 hidden dark:block"
+        style={{
+          backgroundImage:
+            "radial-gradient(1200px 700px at 85% 80%, rgba(99,102,241,0.15), transparent 60%), radial-gradient(1000px 600px at 15% 20%, rgba(59,130,246,0.10), transparent 60%)",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 hidden dark:block"
+        style={{
+          background:
+            "radial-gradient(120% 80% at 50% 50%, transparent 40%, rgba(0,0,0,0.45) 100%)",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 dark:hidden"
+        style={{
+          backgroundImage:
+            "radial-gradient(rgba(17, 24, 39, 0.12) 1px, transparent 1px), linear-gradient(180deg, rgba(248,250,252,0.85), rgba(236,242,248,0.95))",
+          backgroundSize: "16px 16px, 100% 100%",
+          backgroundPosition: "0 0, 0 0",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 dark:hidden"
+        style={{
+          backgroundImage:
+            "radial-gradient(1100px 600px at 85% 80%, rgba(59,130,246,0.20), transparent 60%), radial-gradient(900px 500px at 15% 20%, rgba(99,102,241,0.18), transparent 60%)",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 dark:hidden"
+        style={{
+          background:
+            "radial-gradient(120% 80% at 50% 50%, transparent 35%, rgba(148,163,184,0.28) 100%)",
+        }}
+      />
+
       <ReactFlow
         nodes={droppedNodes}
         edges={[]}
@@ -218,7 +272,11 @@ const BoardCanvasInner = () => {
         fitView
         fitViewOptions={{ padding: 0.1, includeHiddenNodes: false, duration: 300 }}
       >
-        <Background gap={19} size={3} color={document.documentElement.classList.contains('dark') ? '#000000' : '#e5e7eb'} />
+        <Background
+          gap={26}
+          size={1}
+          color={document.documentElement.classList.contains("dark") ? "#1b2431" : "#e5e7eb"}
+        />
       </ReactFlow>
 
       <AIAssistantCard disablePointer={isDragging} />

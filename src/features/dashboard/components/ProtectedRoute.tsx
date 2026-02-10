@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { authService } from "../../../features/dashboard/components/utils/authService";
+import { isWebexSessionValid } from "./auth/webexAuth";
 
 interface ProtectedRouteProps {
   children?: React.ReactNode;
@@ -13,7 +14,12 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   useEffect(() => {
       const checkAuth = async () => {
       const user = await authService.getCurrentUser();
-      setIsAuthenticated(!!user);
+      if (user) {
+        setIsAuthenticated(true);
+        return;
+      }
+
+      setIsAuthenticated(isWebexSessionValid());
     };
 
     checkAuth();

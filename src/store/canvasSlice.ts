@@ -7,7 +7,7 @@ interface Node {
   type: string;
   position: { x: number; y: number };
   data: {
-    graphData?: any[];
+    graphData?: unknown[];
     width?: number;
     height?: number;
     [key: string]: unknown;
@@ -37,6 +37,16 @@ interface CanvasState {
   error: string | null;
 }
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim()) {
+      return message;
+    }
+  }
+  return fallback;
+};
+
 // Initial state
 const initialState: CanvasState = {
   nodes: [],
@@ -58,8 +68,8 @@ export const saveCanvasData = createAsyncThunk(
       // Save to localStorage
       localStorage.setItem(`droppedNodes_${boardId}`, JSON.stringify(nodes));
       return { boardId, nodes, edges };
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to save canvas data');
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to save canvas data'));
     }
   }
 );
@@ -72,8 +82,8 @@ export const loadCanvasData = createAsyncThunk(
       // Load from localStorage
       const storedNodes = localStorage.getItem(`droppedNodes_${boardId}`);
       return storedNodes ? JSON.parse(storedNodes) : [];
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to load canvas data');
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to load canvas data'));
     }
   }
 );
