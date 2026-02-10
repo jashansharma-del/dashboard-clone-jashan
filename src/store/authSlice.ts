@@ -77,21 +77,6 @@ export const checkAuthStatus = createAsyncThunk(
       const user = await authService.getCurrentUser();
       return user;
     } catch {
-      // If Appwrite session fails, check if we have user data in localStorage
-      const storedUser = localStorage.getItem('auth_user');
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          // Return a User object that matches our interface
-          return {
-            $id: parsedUser.id,
-            email: parsedUser.email,
-            name: parsedUser.name,
-          };
-        } catch (parseError) {
-          console.error('Error parsing stored user data:', parseError);
-        }
-      }
       return null;
     }
   }

@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { saveCanvas, loadCanvas } from '../data/canvasStorage';
 
 // Define the node type
 interface Node {
@@ -55,8 +56,7 @@ export const saveCanvasData = createAsyncThunk(
   'canvas/saveCanvasData',
   async ({ boardId, nodes, edges }: { boardId: string; nodes: Node[]; edges: Edge[] }, { rejectWithValue }) => {
     try {
-      // Save to localStorage
-      localStorage.setItem(`droppedNodes_${boardId}`, JSON.stringify(nodes));
+      await saveCanvas(boardId, nodes, edges);
       return { boardId, nodes, edges };
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to save canvas data');
@@ -69,9 +69,8 @@ export const loadCanvasData = createAsyncThunk(
   'canvas/loadCanvasData',
   async (boardId: string, { rejectWithValue }) => {
     try {
-      // Load from localStorage
-      const storedNodes = localStorage.getItem(`droppedNodes_${boardId}`);
-      return storedNodes ? JSON.parse(storedNodes) : [];
+      const result = await loadCanvas(boardId);
+      return result.nodes || [];
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to load canvas data');
     }

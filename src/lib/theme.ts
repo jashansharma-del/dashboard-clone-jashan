@@ -6,10 +6,9 @@
  * Initialize theme based on saved preference or system preference
  */
 export function initializeTheme() {
-  const savedTheme = localStorage.getItem("theme");
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-  if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
+  if (prefersDark) {
     document.documentElement.classList.add("dark");
   } else {
     document.documentElement.classList.remove("dark");
@@ -21,7 +20,6 @@ export function initializeTheme() {
  */
 export function setDarkTheme() {
   document.documentElement.classList.add("dark");
-  localStorage.setItem("theme", "dark");
 }
 
 /**
@@ -29,7 +27,6 @@ export function setDarkTheme() {
  */
 export function setLightTheme() {
   document.documentElement.classList.remove("dark");
-  localStorage.setItem("theme", "light");
 }
 
 /**

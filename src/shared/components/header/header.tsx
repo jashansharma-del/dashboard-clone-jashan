@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
 import { toggleTheme } from '../../../store/uiSlice';
 import { logout } from '../../../store/authSlice';
+import { broadcastLogout } from '../../../lib/broadcast';
 import {
   Plus,
   Search,
@@ -39,11 +40,7 @@ export default function Header() {
     try {
       console.log("Logout clicked");
       await dispatch(logout());
-      // Set a flag in localStorage to signal other tabs
-      localStorage.setItem('logout', 'true');
-      setTimeout(() => {
-        localStorage.removeItem('logout');
-      }, 100); // Clear immediately after other tabs detect it
+      broadcastLogout();
       navigate('/', { replace: true });
     } catch (err) {
       console.error(err);

@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { createChatMessage, listChatMessages } from '../data/chatStorage';
 
 // Define the message type
 interface Message {
@@ -36,15 +37,14 @@ const initialState: ChatState = {
 // Async thunk for sending a message
 export const sendMessage = createAsyncThunk(
   'chat/sendMessage',
-  async ({ chatId, message }: { chatId: string; message: string }, { rejectWithValue }) => {
+  async ({ chatId, message, userId }: { chatId: string; message: string; userId: string }, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      const newMessage: Message = {
-        id: Date.now().toString(),
+      const newMessage: Omit<Message, "id"> = {
         text: message,
         role: 'user',
       };
-      return { chatId, message: newMessage };
+      const created = await createChatMessage(chatId, newMessage, userId);
+      return { chatId, message: created };
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to send message');
     }
@@ -56,9 +56,8 @@ export const fetchChatHistory = createAsyncThunk(
   'chat/fetchChatHistory',
   async (chatId: string, { rejectWithValue }) => {
     try {
-      // Simulate API call to fetch chat history from localStorage
-      const storedChat = localStorage.getItem(`chat-${chatId}`);
-      return storedChat ? JSON.parse(storedChat) : [];
+      const messages = await listChatMessages(chatId);
+      return messages;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch chat history');
     }
@@ -71,23 +70,13 @@ const chatSlice = createSlice({
   reducers: {
     setActiveChat: (state, action: PayloadAction<string>) => {
       state.activeChatId = action.payload;
-      // Load messages from localStorage for this chat
-      const storedMessages = localStorage.getItem(`chat-${action.payload}`);
-      state.messages = storedMessages ? JSON.parse(storedMessages) : [];
+      state.messages = [];
     },
     addMessage: (state, action: PayloadAction<Message>) => {
       state.messages.push(action.payload);
-      // Persist to localStorage
-      if (state.activeChatId) {
-        localStorage.setItem(`chat-${state.activeChatId}`, JSON.stringify(state.messages));
-      }
     },
     clearMessages: (state) => {
       state.messages = [];
-      // Persist to localStorage
-      if (state.activeChatId) {
-        localStorage.setItem(`chat-${state.activeChatId}`, JSON.stringify(state.messages));
-      }
     },
     setIsGenerating: (state, action: PayloadAction<boolean>) => {
       state.isGenerating = action.payload;
@@ -100,19 +89,11 @@ const chatSlice = createSlice({
       state.activeChatId = null;
       state.error = null;
       state.isGenerating = false;
-      // Persist to localStorage
-      if (state.activeChatId) {
-        localStorage.setItem(`chat-${state.activeChatId}`, JSON.stringify(state.messages));
-      }
     },
     updateMessage: (state, action: PayloadAction<{ id: string; updates: Partial<Message> }>) => {
       const messageIndex = state.messages.findIndex(msg => msg.id === action.payload.id);
       if (messageIndex !== -1) {
         state.messages[messageIndex] = { ...state.messages[messageIndex], ...action.payload.updates };
-        // Persist to localStorage
-        if (state.activeChatId) {
-          localStorage.setItem(`chat-${state.activeChatId}`, JSON.stringify(state.messages));
-        }
       }
     },
   },
@@ -126,10 +107,6 @@ const chatSlice = createSlice({
       .addCase(sendMessage.fulfilled, (state, action: PayloadAction<{ chatId: string; message: Message }>) => {
         state.loading = false;
         state.messages.push(action.payload.message);
-        // Persist to localStorage
-        if (state.activeChatId) {
-          localStorage.setItem(`chat-${state.activeChatId}`, JSON.stringify(state.messages));
-        }
       })
       .addCase(sendMessage.rejected, (state, action) => {
         state.loading = false;
@@ -139,10 +116,6 @@ const chatSlice = createSlice({
       .addCase(fetchChatHistory.fulfilled, (state, action: PayloadAction<Message[]>) => {
         state.messages = action.payload;
         state.loading = false;
-        // Persist to localStorage
-        if (state.activeChatId) {
-          localStorage.setItem(`chat-${state.activeChatId}`, JSON.stringify(state.messages));
-        }
       })
       .addCase(fetchChatHistory.rejected, (state, action) => {
         state.error = action.payload as string || 'Failed to fetch chat history';

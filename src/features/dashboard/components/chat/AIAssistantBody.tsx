@@ -4,8 +4,8 @@ import { v4 as uuidv4 } from "uuid";
 import { useParams } from "react-router-dom";
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../../store';
-import { setActiveChat, addMessage, fetchChatHistory } from '../../../../store/chatSlice';
-import { updateMessage } from '../../../../store/chatSlice';
+import { setActiveChat, addMessage, fetchChatHistory, updateMessage } from '../../../../store/chatSlice';
+import { createChatMessage } from "../../../../data/chatStorage";
 
 /* ======================================================
    TYPES
@@ -65,6 +65,7 @@ const PieChart = ({ data }: { data: Slice[] }) => {
       data,
     };
     e.dataTransfer.setData("application/reactflow", JSON.stringify(dragData));
+    e.dataTransfer.setData("text/plain", "chart");
     e.dataTransfer.effectAllowed = "move";
   };
 
@@ -154,6 +155,7 @@ const BarChart = ({ data }: { data: Slice[] }) => {
       data,
     };
     e.dataTransfer.setData("application/reactflow", JSON.stringify(dragData));
+    e.dataTransfer.setData("text/plain", "chart");
     e.dataTransfer.effectAllowed = "move";
   };
 
@@ -219,6 +221,7 @@ const LineChart = ({ data }: { data: Slice[] }) => {
       data,
     };
     e.dataTransfer.setData("application/reactflow", JSON.stringify(dragData));
+    e.dataTransfer.setData("text/plain", "chart");
     e.dataTransfer.effectAllowed = "move";
   };
 
@@ -314,6 +317,7 @@ export default function AIAssistantBody() {
 
   const dispatch = useDispatch<AppDispatch>();
   const { messages, activeChatId } = useSelector((state: RootState) => state.chat);
+  const userId = useSelector((state: RootState) => state.auth.user?.$id || "");
   const [input, setInput] = useState("");
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -335,17 +339,26 @@ export default function AIAssistantBody() {
   }, [messages]);
 
   /* -------- SEND MESSAGE -------- */
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim() || !activeChatId) return;
+
+    const messageText = input;
+    setInput("");
 
     const userMsg: Message = {
       id: uuidv4(),
-      text: input,
+      text: messageText,
       role: "user",
     };
 
     dispatch(addMessage(userMsg));
-    setInput("");
+    if (userId) {
+      try {
+        await createChatMessage(activeChatId, { text: messageText, role: "user" }, userId);
+      } catch (error) {
+        console.error("Failed to persist user message:", error);
+      }
+    }
 
     // Create and add loading assistant message
     const assistantMsgId = uuidv4();
@@ -359,7 +372,7 @@ export default function AIAssistantBody() {
     dispatch(addMessage(loadingMsg));
 
     // Simulate loading delay and then update the loading message
-    setTimeout(() => {
+    setTimeout(async () => {
       // Randomly select a chart type
       const chartTypes: ('pie' | 'bar' | 'line')[] = ['pie', 'bar', 'line'];
       const randomChartType = chartTypes[Math.floor(Math.random() * chartTypes.length)];
@@ -374,6 +387,23 @@ export default function AIAssistantBody() {
           chartType: randomChartType
         }
       }));
+
+      if (userId) {
+        try {
+          await createChatMessage(
+            activeChatId,
+            {
+              text: "Here is the analysis of your request:",
+              role: "assistant",
+              graphData: dummyGraphData,
+              chartType: randomChartType
+            } as Message,
+            userId
+          );
+        } catch (error) {
+          console.error("Failed to persist assistant message:", error);
+        }
+      }
     }, 2000); // 2 seconds loading time
   };
 
@@ -466,3 +496,4 @@ export default function AIAssistantBody() {
     </div>
   );
 }
+

@@ -13,6 +13,7 @@ import { useDragDrop } from "../../../../shared/hooks/DragDropContext";
 import { CanvasCard, AIAssistantCard, PieChartNode, BarChartNode, LineChartNode } from "../../components";
 import { findNonOverlappingPosition } from "../../components/utils";
 import type { PieNodeData, BarNodeData, LineNodeData } from "../../types/chartTypes";
+import { getFirstUserMessageText } from "../../../../data/chatStorage";
 
 /* ============================
    BOARD CANVAS (Inner component with useReactFlow)
@@ -176,28 +177,32 @@ const BoardCanvasInner = () => {
 
 
 
-  const firstUserMessage = useMemo(() => {
-    if (!boardId) return null;
+  const [firstUserMessage, setFirstUserMessage] = useState<string | null>(null);
 
-  try {
-      const stored = localStorage.getItem(`chat-${boardId}`);
-      if (!stored) return null;
+  useEffect(() => {
+    if (!boardId) {
+      setFirstUserMessage(null);
+      return;
+    }
 
-      const messages = JSON.parse(stored);
-      const firstUserMsg = messages.find((msg: { role: string; text: string }) => msg.role === "user");
+    let cancelled = false;
+    const loadFirstMessage = async () => {
+      const text = await getFirstUserMessageText(boardId);
+      if (!cancelled) {
+        setFirstUserMessage(text);
+      }
+    };
 
-    return firstUserMsg?.text || null;
-  } catch {
-    return null;
-  }
-}, [boardId]);
+    loadFirstMessage();
+    return () => {
+      cancelled = true;
+    };
+  }, [boardId]);
 
   return (
     <div
       ref={wrapperRef}
       className="absolute inset-0 bg-background"
-      onDragOver={onDragOver}
-      onDrop={onDrop}
       onDragLeave={onDragLeave}
     >
       <ReactFlow
@@ -205,6 +210,8 @@ const BoardCanvasInner = () => {
         edges={[]}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
         onNodeDoubleClick={(_, node) => {
           console.log("Node double clicked:", node.id);
         }}

@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { createBoard, deleteBoard, getBoards } from '../data/boardStorage';
 
 // Define the Board type here since we can't import from the other file
 interface Board {
@@ -29,9 +30,7 @@ const initialState: BoardState = {
 export const fetchBoards = createAsyncThunk(
   'board/fetchBoards',
   async (userId: string) => {
-    // Simulate API call to fetch boards
-    const storedBoards = localStorage.getItem(`boards-${userId}`);
-    return storedBoards ? JSON.parse(storedBoards) : [];
+    return await getBoards(userId);
   }
 );
 
@@ -39,15 +38,17 @@ export const fetchBoards = createAsyncThunk(
 export const addBoard = createAsyncThunk(
   'board/addBoard',
   async (board: Board) => {
-    return board; // Will be handled in reducers
+    const created = await createBoard(board.userId);
+    return created;
   }
 );
 
 // Async thunk for removing a board
 export const removeBoard = createAsyncThunk(
   'board/removeBoard',
-  async (boardId: string) => {
-    return boardId; // Will be handled in reducers
+  async ({ userId, boardId }: { userId: string; boardId: string }) => {
+    await deleteBoard(userId, boardId);
+    return boardId;
   }
 );
 
