@@ -24,6 +24,16 @@ interface ChatState {
   isGenerating: boolean;
 }
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim()) {
+      return message;
+    }
+  }
+  return fallback;
+};
+
 // Initial state
 const initialState: ChatState = {
   messages: [],
@@ -45,8 +55,8 @@ export const sendMessage = createAsyncThunk(
         role: 'user',
       };
       return { chatId, message: newMessage };
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to send message');
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to send message'));
     }
   }
 );
@@ -59,8 +69,8 @@ export const fetchChatHistory = createAsyncThunk(
       // Simulate API call to fetch chat history from localStorage
       const storedChat = localStorage.getItem(`chat-${chatId}`);
       return storedChat ? JSON.parse(storedChat) : [];
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch chat history');
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Failed to fetch chat history'));
     }
   }
 );

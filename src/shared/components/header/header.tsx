@@ -28,7 +28,25 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   
   const userName = useSelector((state: RootState) => {
-    return state.auth.user?.name || "User";
+    const name = state.auth.user?.name;
+    if (name && name.trim()) {
+      return name;
+    }
+    try {
+      const storedUser = localStorage.getItem("auth_user");
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser) as { name?: string; email?: string };
+        if (parsed.name && parsed.name.trim()) {
+          return parsed.name;
+        }
+        if (parsed.email && parsed.email.trim()) {
+          return parsed.email;
+        }
+      }
+    } catch {
+      // ignore parsing errors
+    }
+    return "User";
   });
 
   const handleToggleTheme = () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,23 +11,42 @@ import { Button } from "@/components/ui/button";
 import SectionHeader from "../../shared/components/ui/ui/SectionHeader";
 import BoardCard from "../../shared/components/ui/ui/BoardCard";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../store";
 import { getBoards, createBoard, deleteBoard, type Board, type Widget, type Message, type ChartData } from "../../../data/boardStorage";
 
 export default function BoardsPage() {
 
      const navigate = useNavigate();
      
-     const getCurrentUserId = () => {
-    const userData = localStorage.getItem("auth_user");
-    if (userData) {
-      const user = JSON.parse(userData);
-      return user.id;
-    }
-    return null;
-  };
+     const user = useSelector((state: RootState) => state.auth.user);
+
+     const userId = useMemo(() => {
+       if (user && typeof user === "object") {
+         const userWithId = user as { $id?: string; id?: string };
+         if (userWithId.$id) {
+           return userWithId.$id;
+         }
+         if (userWithId.id) {
+           return userWithId.id;
+         }
+       }
+
+       const userData = localStorage.getItem("auth_user");
+       if (userData) {
+         try {
+           const parsedUser = JSON.parse(userData) as { id?: string };
+           if (parsedUser.id) {
+             return parsedUser.id;
+           }
+         } catch {
+           return null;
+         }
+       }
+       return null;
+     }, [user]);
      
      const [boards, setBoards] = useState<Board[]>(() => {
-       const userId = getCurrentUserId();
        return userId ? getBoards(userId) : [];
      });
      
@@ -41,11 +60,10 @@ export default function BoardsPage() {
      // Listen for localStorage changes
      useEffect(() => {
        const handleStorageChange = () => {
-        const userId = getCurrentUserId();
-        if(userId) {
-          setBoards(getBoards(userId));
-        }
-         
+         if(userId) {
+           setBoards(getBoards(userId));
+         }
+          
       };
 
        // Listen for changes to the boards in localStorage
@@ -61,7 +79,15 @@ export default function BoardsPage() {
          document.body.style.overflowX = '';
          document.documentElement.style.overflowX = '';
        };
-     }, []);
+     }, [userId]);
+
+     useEffect(() => {
+       if (userId) {
+         setBoards(getBoards(userId));
+       } else {
+         setBoards([]);
+       }
+     }, [userId]);
 
      // Listen for theme changes to force re-render
      useEffect(() => {
@@ -82,7 +108,6 @@ export default function BoardsPage() {
      }, []);
   
   const  handleCreateBoard = () => {
-    const userId = getCurrentUserId();
     if (!userId){
       return;
     }

@@ -1,4 +1,5 @@
 import { Client, Account, ID } from "appwrite";
+import { clearWebexSession } from "../auth/webexAuth";
 
 // Initialize Appwrite Client
 export const client = new Client()
@@ -58,8 +59,13 @@ export const authService = {
 
   // Logout
   async logout() {
-    await account.deleteSession("current");
+    try {
+      await account.deleteSession("current");
+    } catch (error) {
+      console.warn("Failed to delete Appwrite session:", error);
+    }
     localStorage.removeItem("auth_user");
+    clearWebexSession();
   },
 
   // Verify session
