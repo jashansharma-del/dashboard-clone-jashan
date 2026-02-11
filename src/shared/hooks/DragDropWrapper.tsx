@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { Node, NodeChange } from "reactflow";
 import { applyNodeChanges } from "reactflow";
@@ -20,6 +20,7 @@ export default function DragDropWrapper({
   const userId = useSelector((state: RootState) => state.auth.user?.$id || null);
   const [droppedNodes, setDroppedNodes] = useState<Node[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const hasShownSaveError = useRef(false);
 
   useEffect(() => {
     if (!propBoardId) {
@@ -44,12 +45,7 @@ export default function DragDropWrapper({
   }, [propBoardId]);
 
   const addNode = useCallback((node: Node) => {
-    console.log("✅ addNode called with:", node);
-    setDroppedNodes((nodes) => {
-      const updated = [...nodes, node];
-      console.log("✅ Updated nodes array:", updated);
-      return updated;
-    });
+    setDroppedNodes((nodes) => [...nodes, node]);
   }, []);
 
   const updateNode = useCallback(
@@ -69,53 +65,49 @@ export default function DragDropWrapper({
     setDroppedNodes([]);
   }, []);
 
-  // FIX: Use React Flow's applyNodeChanges helper
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    console.log("🔄 onNodesChange called with:", changes);
-    setDroppedNodes((nodes) => {
-      const updated = applyNodeChanges(changes, nodes);
-      console.log("🔄 Nodes after changes:", updated);
-      return updated;
-    });
+    setDroppedNodes((nodes) => applyNodeChanges(changes, nodes));
   }, []);
 
   useEffect(() => {
     if (!propBoardId) return;
     if (!isLoaded) return;
+
     const persist = async () => {
       try {
-        console.log("💾 Saving nodes to Appwrite:", droppedNodes);
         await saveCanvas(propBoardId, droppedNodes, [], userId || undefined);
+        hasShownSaveError.current = false;
 
         if (!userId) return;
+
         const board = await getBoardById(userId, propBoardId);
-        if (board) {
-          const widgets: Widget[] = droppedNodes.map((node) => ({
-            id: node.id,
-            type: node.type || "unknown",
-            position: node.position || { x: 0, y: 0 },
-            props: {
-              label: (node.data as any)?.label || node.type || "Chart",
-              data: (node.data as any)?.graphData || [],
-              width: node.width,
-              height: node.height,
-            },
-          }));
-          const updatedBoard = { ...board, widgets };
-          await updateBoard(userId, updatedBoard);
-        }
+        if (!board) return;
+
+        const widgets: Widget[] = droppedNodes.map((node) => ({
+          id: node.id,
+          type: node.type || "unknown",
+          position: node.position || { x: 0, y: 0 },
+          props: {
+            label: (node.data as any)?.label || node.type || "Chart",
+            data: (node.data as any)?.graphData || [],
+            width: node.width,
+            height: node.height,
+          },
+        }));
+
+        const updatedBoard = { ...board, widgets };
+        await updateBoard(userId, updatedBoard);
       } catch (err) {
-        console.error("Failed to save nodes:", err);
+        console.error("Failed to save canvas:", err);
+        if (!hasShownSaveError.current) {
+          window.alert("Failed to save canvas to server. Changes will be lost if you refresh now.");
+          hasShownSaveError.current = true;
+        }
       }
     };
 
     persist();
   }, [droppedNodes, propBoardId, userId, isLoaded]);
-
-  // Debug: Log droppedNodes whenever it changes
-  useEffect(() => {
-    console.log("🔵 droppedNodes state updated:", droppedNodes);
-  }, [droppedNodes]);
 
   return (
     <DragDropContext.Provider

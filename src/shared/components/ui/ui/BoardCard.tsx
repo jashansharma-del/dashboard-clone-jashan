@@ -2,7 +2,13 @@ import { useEffect, useState, useRef } from "react";
 import * as htmlToImage from "html-to-image";
 import BoardPreview from "./BoardPreview";
 import type { Message } from "../../../../data/boardStorage";
-import { Trash2 } from "lucide-react";
+import { MoreVertical, Pin, PinOff, Share2, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./dropdown-menu";
 
 type WidgetData = {
   label: string;
@@ -13,10 +19,26 @@ type BoardCardProps = {
   widgets: { type: string; label: string; data?: WidgetData }[];
   messages?: Message[];
   onClick?: () => void;
+  showMenu?: boolean;
+  isPinned?: boolean;
+  canMutate?: boolean;
+  onShare?: () => void;
+  onPinToggle?: () => void;
   onDelete?: () => void;
 };
 
-export default function BoardCard({ title, widgets, messages = [], onClick, onDelete }: BoardCardProps) {
+export default function BoardCard({
+  title,
+  widgets,
+  messages = [],
+  onClick,
+  showMenu = false,
+  isPinned = false,
+  canMutate = true,
+  onShare,
+  onPinToggle,
+  onDelete,
+}: BoardCardProps) {
   const previewRef = useRef<HTMLDivElement>(null);
   const [image, setImage] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -68,17 +90,55 @@ export default function BoardCard({ title, widgets, messages = [], onClick, onDe
       className={`w-[300px] sm:w-[350px] bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-all duration-300 relative ${onClick ? 'hover:scale-[1.02]' : ''}`}
       onClick={onClick}
     >
-      {onDelete && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          className="absolute bottom-4 right-4 p-2 bg-gray-500 hover:bg-black-600 dark:bg-red-600 dark:hover:bg-red-700 rounded-lg shadow-md transition-colors duration-200 z-10"
-          aria-label="Delete board"
-        >
-          <Trash2 className="w-4 h-4 text-white" />
-        </button>
+      {showMenu && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="absolute top-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-md bg-white/90 text-gray-600 shadow-sm transition-colors hover:bg-gray-100 dark:bg-gray-700/90 dark:text-gray-200 dark:hover:bg-gray-600 z-20"
+              aria-label="Board options"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onShare?.();
+              }}
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onPinToggle?.();
+              }}
+            >
+              {isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+              {isPinned ? "Unpin" : "Pin"}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDelete?.();
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+              {canMutate ? "Delete" : "Delete (Coming soon)"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
       <div className="absolute opacity-0 pointer-events-none">
         <div ref={previewRef}>

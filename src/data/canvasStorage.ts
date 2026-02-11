@@ -6,7 +6,7 @@ import {
   assertAppwriteConfig,
 } from "./appwriteConfig";
 
-const LOCAL_CANVAS_PREFIX = "canvas-";
+const memoryCanvas = new Map<string, { nodes: any[]; edges: any[] }>();
 
 function safeJsonParse<T>(value: unknown, fallback: T): T {
   if (typeof value !== "string") return fallback;
@@ -61,11 +61,12 @@ export async function saveCanvas(
       payload,
       permissions
     );
-  } catch {
-    localStorage.setItem(
-      `${LOCAL_CANVAS_PREFIX}${boardId}`,
-      JSON.stringify({ nodes: nodes || [], edges: edges || [] })
-    );
+  } catch (error) {
+    memoryCanvas.set(boardId, { nodes: nodes || [], edges: edges || [] });
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Failed to save canvas.");
   }
 }
 
@@ -84,8 +85,6 @@ export async function loadCanvas(boardId: string): Promise<{ nodes: any[]; edges
       edges: safeJsonParse<any[]>(doc.edgesjson, []),
     };
   } catch {
-    const local = localStorage.getItem(`${LOCAL_CANVAS_PREFIX}${boardId}`);
-    if (!local) return { nodes: [], edges: [] };
-    return safeJsonParse(local, { nodes: [], edges: [] });
+    return memoryCanvas.get(boardId) || { nodes: [], edges: [] };
   }
 }
