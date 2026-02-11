@@ -1,10 +1,11 @@
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../store';
 import { setTheme } from '../store/uiSlice';
 import { checkAuthStatus } from '../store/authSlice';
 import { setDarkTheme, setLightTheme } from "../lib/theme";
+import authService from "../features/dashboard/components/utils/authService";
 
 import Header from "../shared/components/header/header";
 import BoardsPage from "../features/dashboard/BoardsPage";
@@ -16,6 +17,7 @@ import ProtectedRoute from "../features/dashboard/components/ProtectedRoute";
 
 export default function App() {
   const location = useLocation();
+  const [themeInitialized, setThemeInitialized] = useState(false);
   
 
   // Hide header only on public entry page
@@ -32,28 +34,26 @@ export default function App() {
 
   // Initialize theme on app start and sync with Redux state
   useEffect(() => {
-    // Get the saved theme from localStorage
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let cancelled = false;
+    const initTheme = async () => {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      let initialTheme: 'dark' | 'light' = prefersDark ? 'dark' : 'light';
 
-    // Determine the initial theme
-    let initialTheme: 'dark' | 'light' = 'light';
-    if (savedTheme === 'dark' || savedTheme === 'light') {
-      initialTheme = savedTheme;
-    } else {
-      initialTheme = prefersDark ? 'dark' : 'light';
-    }
+      if (isAuthenticated) {
+        const pref = await authService.getThemePref();
+        if (pref) initialTheme = pref;
+      }
 
-    // Apply the initial theme to the DOM
-    if (initialTheme === 'dark') {
-      setDarkTheme();
-    } else {
-      setLightTheme();
-    }
+      if (cancelled) return;
+      dispatch(setTheme(initialTheme));
+      setThemeInitialized(true);
+    };
 
-    // Update Redux state to match the initial theme
-    dispatch(setTheme(initialTheme));
-  }, [dispatch]);
+    initTheme();
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch, isAuthenticated]);
   
   // Sync theme changes to DOM
   useEffect(() => {
@@ -62,7 +62,10 @@ export default function App() {
     } else {
       setLightTheme();
     }
-  }, [theme]);
+    if (themeInitialized && isAuthenticated) {
+      authService.setThemePref(theme);
+    }
+  }, [theme, themeInitialized, isAuthenticated]);
 
   return (
     

@@ -2,10 +2,11 @@ import { useState, useCallback, useEffect } from "react";
 import type { ReactNode } from "react";
 import type { Node, NodeChange } from "reactflow";
 import { applyNodeChanges } from "reactflow";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../store";
 import { DragDropContext } from "./DragDropContext";
-import { updateBoard, getBoardById, type Widget} from "../../../data/boardStorage";
-
-const DROPPED_NODES_KEY_PREFIX = "droppedNodes";
+import { updateBoard, getBoardById, type Widget } from "../../data/boardStorage";
+import { loadCanvas, saveCanvas } from "../../data/canvasStorage";
 
 interface DragDropWrapperProps {
   children: ReactNode;
@@ -16,23 +17,35 @@ export default function DragDropWrapper({
   children,
   boardId: propBoardId,
 }: DragDropWrapperProps) {
-  const getStorageKey = (boardId: string) =>
-    `${DROPPED_NODES_KEY_PREFIX}_${boardId}`;
+  const userId = useSelector((state: RootState) => state.auth.user?.$id || null);
+  const [droppedNodes, setDroppedNodes] = useState<Node[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  const [droppedNodes, setDroppedNodes] = useState<Node[]>(() => {
-    if (!propBoardId) return [];
-    try {
-      const stored = localStorage.getItem(getStorageKey(propBoardId));
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      localStorage.removeItem(getStorageKey(propBoardId));
-      return [];
+  useEffect(() => {
+    if (!propBoardId) {
+      setDroppedNodes([]);
+      setIsLoaded(false);
+      return;
     }
-  });
+
+    let cancelled = false;
+    const loadNodes = async () => {
+      const result = await loadCanvas(propBoardId);
+      if (!cancelled) {
+        setDroppedNodes(result.nodes || []);
+        setIsLoaded(true);
+      }
+    };
+
+    loadNodes();
+    return () => {
+      cancelled = true;
+    };
+  }, [propBoardId]);
 
   const addNode = useCallback((node: Node) => {
     console.log("✅ addNode called with:", node);
-    setDroppedNodes(nodes => {
+    setDroppedNodes((nodes) => {
       const updated = [...nodes, node];
       console.log("✅ Updated nodes array:", updated);
       return updated;
@@ -41,15 +54,15 @@ export default function DragDropWrapper({
 
   const updateNode = useCallback(
     (nodeId: string, updates: Partial<Omit<Node, "id" | "type">>) => {
-      setDroppedNodes(nodes =>
-        nodes.map(n => (n.id === nodeId ? { ...n, ...updates } : n))
+      setDroppedNodes((nodes) =>
+        nodes.map((n) => (n.id === nodeId ? { ...n, ...updates } : n))
       );
     },
     []
   );
 
   const removeNode = useCallback((nodeId: string) => {
-    setDroppedNodes(nodes => nodes.filter(n => n.id !== nodeId));
+    setDroppedNodes((nodes) => nodes.filter((n) => n.id !== nodeId));
   }, []);
 
   const clearDroppedNodes = useCallback(() => {
@@ -66,43 +79,38 @@ export default function DragDropWrapper({
     });
   }, []);
 
-
-
   useEffect(() => {
     if (!propBoardId) return;
-    try {
-      console.log("💾 Saving nodes to localStorage:", droppedNodes);
-      localStorage.setItem(
-        getStorageKey(propBoardId),
-        JSON.stringify(droppedNodes)
-      );
+    if (!isLoaded) return;
+    const persist = async () => {
+      try {
+        console.log("💾 Saving nodes to Appwrite:", droppedNodes);
+        await saveCanvas(propBoardId, droppedNodes, [], userId || undefined);
 
-      const userData = localStorage.getItem("auth_user");
-      if (userData) {
-        const user = JSON.parse(userData);
-        const userId = user.id;
-
-        const board = getBoardById(userId, propBoardId);
-        if(board){
-          const widgets: Widget[] = droppedNodes.map(node => ({
-          id: node.id,
-          type: node.type || "unknown",
-          position: node.position || { x: 0, y: 0 },
-          props: {
-            label: node.data?.label || node.type || "Chart",
-            data: node.data?.graphData || [],
-            width: node.width ,
-            height: node.height 
-          }
-        }));
-        const updatedBoard = { ...board,widgets};
-        updateBoard(userId, updatedBoard);
+        if (!userId) return;
+        const board = await getBoardById(userId, propBoardId);
+        if (board) {
+          const widgets: Widget[] = droppedNodes.map((node) => ({
+            id: node.id,
+            type: node.type || "unknown",
+            position: node.position || { x: 0, y: 0 },
+            props: {
+              label: (node.data as any)?.label || node.type || "Chart",
+              data: (node.data as any)?.graphData || [],
+              width: node.width,
+              height: node.height,
+            },
+          }));
+          const updatedBoard = { ...board, widgets };
+          await updateBoard(userId, updatedBoard);
         }
+      } catch (err) {
+        console.error("Failed to save nodes:", err);
       }
-    } catch (err) {
-      console.error("Failed to save nodes:", err);
-    }
-  }, [droppedNodes, propBoardId]);
+    };
+
+    persist();
+  }, [droppedNodes, propBoardId, userId, isLoaded]);
 
   // Debug: Log droppedNodes whenever it changes
   useEffect(() => {

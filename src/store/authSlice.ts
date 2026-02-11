@@ -21,16 +21,6 @@ interface AuthState {
   error: string | null;
 }
 
-const getErrorMessage = (error: unknown, fallback: string) => {
-  if (error && typeof error === 'object' && 'message' in error) {
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === 'string' && message.trim()) {
-      return message;
-    }
-  }
-  return fallback;
-};
-
 // Initial state
 const initialState: AuthState = {
   user: null,
@@ -60,9 +50,9 @@ export const register = createAsyncThunk(
     try {
       const user = await authService.register(email, password, name);
       return user;
-    } catch (error: unknown) {
-      return rejectWithValue(getErrorMessage(error, 'Registration failed'));
-    }
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Registration failed');
+    } 
   }
 );
 

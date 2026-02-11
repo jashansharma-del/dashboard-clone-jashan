@@ -1,4 +1,5 @@
-import { Client, Account, ID } from "appwrite";
+import { Client, Account, Databases, ID } from "appwrite";
+
 import { clearWebexSession } from "../auth/webexAuth";
 
 // Initialize Appwrite Client
@@ -8,6 +9,7 @@ export const client = new Client()
 
 // Initialize Account service
 export const account = new Account(client);
+export const databases = new Databases(client);
 
 // Utility functions for authentication
 export const authService = {
@@ -76,7 +78,28 @@ export const authService = {
     } catch {
       return { isValid: false, user: null };
     }
-  }
+  },
+
+  // Theme preference helpers (Appwrite prefs)
+  async getThemePref(): Promise<"dark" | "light" | null> {
+    try {
+      const prefs = await account.getPrefs();
+      const theme = prefs?.theme;
+      return theme === "dark" || theme === "light" ? theme : null;
+    } catch {
+      return null;
+    }
+  },
+
+  async setThemePref(theme: "dark" | "light") {
+    try {
+      const prefs = await account.getPrefs();
+      await account.updatePrefs({ ...prefs, theme });
+    } catch (error) {
+      console.error("Failed to update theme preference:", error);
+    }
+  },
 };
 
 export default authService;
+

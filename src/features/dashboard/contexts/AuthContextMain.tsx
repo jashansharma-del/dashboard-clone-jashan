@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
 import { login, logout, checkAuthStatus } from '../../../store/authSlice';
 import { AuthContext } from './context';
+import { broadcastLogout, onLogoutBroadcast } from '../../../lib/broadcast';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const dispatch = useDispatch<AppDispatch>();
@@ -18,17 +19,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Handle logout across tabs
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'logout' && e.newValue === 'true') {
-        // Another tab logged out, sync the state
-        dispatch(logout());
-        navigate('/', { replace: true });
-      }
-    };
+    const unsubscribe = onLogoutBroadcast(() => {
+      dispatch(logout());
+      navigate('/', { replace: true });
+    });
 
-    window.addEventListener('storage', handleStorageChange);
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      unsubscribe();
     };
   }, [dispatch, navigate]);
 
@@ -36,7 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await dispatch(login({ email, password }));
       if (login.fulfilled.match(result)) {
-        localStorage.removeItem('logout');
         return { success: true };
       } else {
         return { success: false, error: result.payload };
@@ -50,11 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleLogout = async () => {
     try {
       await dispatch(logout());
-      // Set a flag in localStorage to signal other tabs
-      localStorage.setItem('logout', 'true');
-      setTimeout(() => {
-        localStorage.removeItem('logout');
-      }, 100); // Clear immediately after other tabs detect it
+      broadcastLogout();
       navigate('/', { replace: true });
     } catch (error) {
       console.error('Logout failed:', error);

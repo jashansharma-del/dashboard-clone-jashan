@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
 import { toggleTheme } from '../../../store/uiSlice';
 import { logout } from '../../../store/authSlice';
+import { broadcastLogout } from '../../../lib/broadcast';
 import {
   Plus,
   Search,
@@ -28,25 +29,7 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   
   const userName = useSelector((state: RootState) => {
-    const name = state.auth.user?.name;
-    if (name && name.trim()) {
-      return name;
-    }
-    try {
-      const storedUser = localStorage.getItem("auth_user");
-      if (storedUser) {
-        const parsed = JSON.parse(storedUser) as { name?: string; email?: string };
-        if (parsed.name && parsed.name.trim()) {
-          return parsed.name;
-        }
-        if (parsed.email && parsed.email.trim()) {
-          return parsed.email;
-        }
-      }
-    } catch {
-      // ignore parsing errors
-    }
-    return "User";
+    return state.auth.user?.name || "User";
   });
 
   const handleToggleTheme = () => {
@@ -57,11 +40,7 @@ export default function Header() {
     try {
       console.log("Logout clicked");
       await dispatch(logout());
-      // Set a flag in localStorage to signal other tabs
-      localStorage.setItem('logout', 'true');
-      setTimeout(() => {
-        localStorage.removeItem('logout');
-      }, 100); // Clear immediately after other tabs detect it
+      broadcastLogout();
       navigate('/', { replace: true });
     } catch (err) {
       console.error(err);

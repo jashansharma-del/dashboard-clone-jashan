@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import * as htmlToImage from "html-to-image";
 import BoardPreview from "./BoardPreview";
-import type { Message } from "../../../../../data/boardStorage";
+import type { Message } from "../../../../data/boardStorage";
 import { Trash2 } from "lucide-react";
 
 type WidgetData = {
