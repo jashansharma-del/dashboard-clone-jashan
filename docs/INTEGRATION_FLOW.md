@@ -398,6 +398,132 @@ Note:
 
 ## End-to-End Flow Diagrams
 
+### Unified User Journey (SVG)
+
+```svg
+<svg width="1480" height="760" viewBox="0 0 1480 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">End-to-end integration flow</title>
+  <desc id="desc">User starts on sign-in, chooses email password or Webex OAuth, enters app, manages boards and canvas, shares via Webex, and ends with logout.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f7fafc; }
+      .lane { fill: #ffffff; stroke: #d0d7de; stroke-width: 1.2; rx: 12; }
+      .title { font: 700 17px 'Segoe UI', Tahoma, sans-serif; fill: #1f2937; }
+      .label { font: 600 13px 'Segoe UI', Tahoma, sans-serif; fill: #111827; }
+      .small { font: 500 12px 'Segoe UI', Tahoma, sans-serif; fill: #374151; }
+      .box-start { fill: #e8fff3; stroke: #059669; stroke-width: 1.5; rx: 10; }
+      .box-auth { fill: #e8f1ff; stroke: #2563eb; stroke-width: 1.5; rx: 10; }
+      .box-core { fill: #fff7e6; stroke: #d97706; stroke-width: 1.5; rx: 10; }
+      .box-share { fill: #f3e8ff; stroke: #7c3aed; stroke-width: 1.5; rx: 10; }
+      .box-end { fill: #fee2e2; stroke: #dc2626; stroke-width: 1.5; rx: 10; }
+      .decision { fill: #fef3c7; stroke: #b45309; stroke-width: 1.5; }
+      .arrow { stroke: #334155; stroke-width: 1.8; fill: none; marker-end: url(#arrowhead); }
+      .dashed { stroke-dasharray: 7 5; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0,0 10,4 0,8" fill="#334155" />
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1480" height="760"/>
+
+  <rect class="lane" x="20" y="20" width="1440" height="130"/>
+  <text class="title" x="36" y="50">1) Entry and Authentication Choice</text>
+  <rect class="box-start" x="40" y="68" width="200" height="58"/>
+  <text class="label" x="67" y="95">User opens app</text>
+  <text class="small" x="79" y="112">Sign In route</text>
+  <polygon class="decision" points="300,97 360,68 420,97 360,126"/>
+  <text class="label" x="334" y="101">Auth</text>
+  <text class="small" x="336" y="116">path?</text>
+  <rect class="box-auth" x="470" y="68" width="220" height="58"/>
+  <text class="label" x="500" y="95">Email/Password</text>
+  <text class="small" x="498" y="112">authService.login</text>
+  <rect class="box-auth" x="760" y="68" width="240" height="58"/>
+  <text class="label" x="804" y="95">Webex OAuth</text>
+  <text class="small" x="782" y="112">authorize and callback</text>
+
+  <path class="arrow" d="M240 97 L300 97"/>
+  <path class="arrow" d="M420 97 L470 97"/>
+  <path class="arrow" d="M420 97 L760 97"/>
+  <text class="small" x="438" y="85">email</text>
+  <text class="small" x="610" y="85">webex</text>
+
+  <rect class="lane" x="20" y="170" width="1440" height="180"/>
+  <text class="title" x="36" y="200">2) Identity Resolution and Session Persistence</text>
+  <rect class="box-auth" x="60" y="228" width="250" height="66"/>
+  <text class="label" x="98" y="255">Appwrite session</text>
+  <text class="small" x="81" y="273">createEmailPasswordSession</text>
+  <rect class="box-auth" x="360" y="228" width="250" height="66"/>
+  <text class="label" x="416" y="255">Webex callback</text>
+  <text class="small" x="388" y="273">token/code parsing + /people/me</text>
+  <rect class="box-auth" x="660" y="228" width="280" height="66"/>
+  <text class="label" x="706" y="255">Store Webex metadata</text>
+  <text class="small" x="696" y="273">account.updatePrefs(webex)</text>
+  <rect class="box-auth" x="990" y="228" width="220" height="66"/>
+  <text class="label" x="1043" y="255">account.get</text>
+  <text class="small" x="1038" y="273">canonical user</text>
+  <rect class="box-auth" x="1250" y="228" width="180" height="66"/>
+  <text class="label" x="1277" y="255">Redux auth</text>
+  <text class="small" x="1263" y="273">setCredentials</text>
+
+  <path class="arrow" d="M690 97 L690 228"/>
+  <path class="arrow dashed" d="M580 126 L185 228"/>
+  <path class="arrow" d="M610 261 L660 261"/>
+  <path class="arrow" d="M940 261 L990 261"/>
+  <path class="arrow" d="M1210 261 L1250 261"/>
+  <text class="small" x="538" y="149">oauth branch</text>
+  <text class="small" x="246" y="202">email branch</text>
+
+  <rect class="lane" x="20" y="370" width="1440" height="190"/>
+  <text class="title" x="36" y="400">3) Protected App Usage (Boards, Canvas, Chat)</text>
+  <rect class="box-core" x="80" y="430" width="230" height="66"/>
+  <text class="label" x="120" y="457">ProtectedRoute</text>
+  <text class="small" x="112" y="475">session check passes</text>
+  <rect class="box-core" x="360" y="430" width="220" height="66"/>
+  <text class="label" x="404" y="457">Create Board</text>
+  <text class="small" x="379" y="475">boards collection write</text>
+  <rect class="box-core" x="630" y="430" width="260" height="66"/>
+  <text class="label" x="684" y="457">Canvas Operations</text>
+  <text class="small" x="651" y="475">nodes/edges serialize and save</text>
+  <rect class="box-core" x="940" y="430" width="220" height="66"/>
+  <text class="label" x="1006" y="457">Chat Save/Load</text>
+  <text class="small" x="980" y="475">messages collection I/O</text>
+  <rect class="box-core" x="1210" y="430" width="190" height="66"/>
+  <text class="label" x="1241" y="457">Board Preview</text>
+  <text class="small" x="1239" y="475">cards and actions</text>
+
+  <path class="arrow" d="M1340 294 L1340 430"/>
+  <path class="arrow" d="M310 463 L360 463"/>
+  <path class="arrow" d="M580 463 L630 463"/>
+  <path class="arrow" d="M890 463 L940 463"/>
+  <path class="arrow" d="M1160 463 L1210 463"/>
+
+  <rect class="lane" x="20" y="580" width="1440" height="160"/>
+  <text class="title" x="36" y="610">4) Share and End of Session</text>
+  <rect class="box-share" x="100" y="640" width="260" height="66"/>
+  <text class="label" x="151" y="667">Open Share Dialog</text>
+  <text class="small" x="136" y="685">from board card menu</text>
+  <rect class="box-share" x="420" y="640" width="260" height="66"/>
+  <text class="label" x="444" y="667">Search Recipient</text>
+  <text class="small" x="471" y="685">GET /v1/people?email</text>
+  <rect class="box-share" x="740" y="640" width="260" height="66"/>
+  <text class="label" x="772" y="667">Send Webex DM</text>
+  <text class="small" x="791" y="685">POST /v1/messages</text>
+  <rect class="box-end" x="1060" y="640" width="150" height="66"/>
+  <text class="label" x="1099" y="667">Logout</text>
+  <text class="small" x="1074" y="685">deleteSession</text>
+  <rect class="box-end" x="1260" y="640" width="160" height="66"/>
+  <text class="label" x="1307" y="667">End</text>
+  <text class="small" x="1286" y="685">session closed</text>
+
+  <path class="arrow" d="M1305 496 L1305 640"/>
+  <path class="arrow" d="M360 673 L420 673"/>
+  <path class="arrow" d="M680 673 L740 673"/>
+  <path class="arrow" d="M1000 673 L1060 673"/>
+  <path class="arrow" d="M1210 673 L1260 673"/>
+</svg>
+```
+
 ### Normal User (Email/Password)
 
 ```mermaid
