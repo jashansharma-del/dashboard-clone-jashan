@@ -8,7 +8,7 @@ import {
   assertAppwriteConfig,
 } from "./appwriteConfig";
 
-const LOCAL_BOARDS_PREFIX = "boards-";
+const memoryBoards = new Map<string, Board[]>();
 
 export type Message = {
   id: string;
@@ -42,6 +42,7 @@ export type Board = {
   title: string;
   widgets: Widget[];
   messages?: Message[];
+  isPinned?: boolean;
 };
 
 function safeJsonParse<T>(value: unknown, fallback: T): T {
@@ -53,17 +54,12 @@ function safeJsonParse<T>(value: unknown, fallback: T): T {
   }
 }
 
-function getLocalBoardsKey(userId: string) {
-  return `${LOCAL_BOARDS_PREFIX}${userId}`;
+function readMemoryBoards(userId: string): Board[] {
+  return [...(memoryBoards.get(userId) || [])];
 }
 
-function readLocalBoards(userId: string): Board[] {
-  const data = localStorage.getItem(getLocalBoardsKey(userId));
-  return data ? safeJsonParse<Board[]>(data, []) : [];
-}
-
-function writeLocalBoards(userId: string, boards: Board[]) {
-  localStorage.setItem(getLocalBoardsKey(userId), JSON.stringify(boards));
+function writeMemoryBoards(userId: string, boards: Board[]) {
+  memoryBoards.set(userId, [...boards]);
 }
 
 function makeLocalId() {
@@ -76,6 +72,7 @@ function mapBoard(doc: any): Board {
     userId: doc.userId,
     title: doc.title || "Untitled Board",
     widgets: safeJsonParse<Widget[]>(doc.widgetsJson, []),
+    isPinned: typeof doc.isPinned === "boolean" ? doc.isPinned : false,
   };
 }
 
@@ -90,6 +87,7 @@ export async function createBoard(userId: string): Promise<Board> {
         userId,
         title: "Untitled Board",
         widgetsJson: JSON.stringify([]),
+        isPinned: false,
       },
       [
         Permission.read(Role.user(userId)),
@@ -99,16 +97,17 @@ export async function createBoard(userId: string): Promise<Board> {
     );
     return mapBoard(doc);
   } catch {
-    const boards = readLocalBoards(userId);
+    const boards = readMemoryBoards(userId);
     const newBoard: Board = {
       id: makeLocalId(),
       userId,
       title: "Untitled Board",
       widgets: [],
       messages: [],
+      isPinned: false,
     };
     boards.push(newBoard);
-    writeLocalBoards(userId, boards);
+    writeMemoryBoards(userId, boards);
     return newBoard;
   }
 }
@@ -123,7 +122,21 @@ export async function getBoards(userId: string): Promise<Board[]> {
     );
     return result.documents.map(mapBoard);
   } catch {
-    return readLocalBoards(userId);
+    return readMemoryBoards(userId);
+  }
+}
+
+export async function getReadableBoards(userId: string): Promise<Board[]> {
+  try {
+    assertAppwriteConfig();
+    const result = await databases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      APPWRITE_COLLECTION_BOARDS,
+      [Query.limit(200)]
+    );
+    return result.documents.map(mapBoard);
+  } catch {
+    return readMemoryBoards(userId);
   }
 }
 
@@ -138,7 +151,7 @@ export async function getBoardById(userId: string, id: string): Promise<Board | 
     if (doc.userId !== userId) return undefined;
     return mapBoard(doc);
   } catch {
-    const boards = readLocalBoards(userId);
+    const boards = readMemoryBoards(userId);
     return boards.find((board) => board.id === id);
   }
 }
@@ -154,14 +167,15 @@ export async function updateBoard(userId: string, board: Board): Promise<void> {
         userId: board.userId || userId,
         title: board.title,
         widgetsJson: JSON.stringify(board.widgets || []),
+        isPinned: Boolean(board.isPinned),
       }
     );
   } catch {
-    const boards = readLocalBoards(userId);
+    const boards = readMemoryBoards(userId);
     const index = boards.findIndex((b) => b.id === board.id);
     if (index !== -1) {
       boards[index] = board;
-      writeLocalBoards(userId, boards);
+      writeMemoryBoards(userId, boards);
     }
   }
 }
@@ -207,10 +221,8 @@ export async function deleteBoard(userId: string, id: string): Promise<void> {
       // Ignore errors for chat cleanup
     }
   } catch {
-    const boards = readLocalBoards(userId).filter((board) => board.id !== id);
-    writeLocalBoards(userId, boards);
-    localStorage.removeItem(`chat-${id}`);
-    localStorage.removeItem(`canvas-${id}`);
+    const boards = readMemoryBoards(userId).filter((board) => board.id !== id);
+    writeMemoryBoards(userId, boards);
   }
 }
 

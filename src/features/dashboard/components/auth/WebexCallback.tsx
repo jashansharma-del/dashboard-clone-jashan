@@ -4,12 +4,15 @@ import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../../../../store";
 import { setCredentials, setError, setLoading } from "../../../../store/authSlice";
 import {
+  clearWebexOAuthState,
   exchangeWebexCodeForToken,
   fetchWebexMe,
+  getWebexState,
   parseWebexCallback,
   persistWebexSession,
 } from "./webexAuth";
-import { storeWebexPrefs } from "../utils/webexStorage";
+import { account } from "./appwriteClient";
+import { getWebexAccessToken, storeWebexPrefs } from "../utils/webexStorage";
 
 export default function WebexCallback() {
   const navigate = useNavigate();
@@ -25,7 +28,7 @@ export default function WebexCallback() {
         const { error, errorDescription, accessToken, expiresIn, state, code } =
           parseWebexCallback();
 
-        const storedState = localStorage.getItem("webex_oauth_state");
+        const storedState = getWebexState();
         if (storedState && state && storedState !== state) {
           throw new Error("Webex sign-in failed: invalid state.");
         }
@@ -48,20 +51,31 @@ export default function WebexCallback() {
         }
 
         const me = await fetchWebexMe(tokenResponse.access_token);
-        const userForStore = persistWebexSession(tokenResponse, me);
+        const { webexPrefs } = persistWebexSession(tokenResponse, me);
+        await storeWebexPrefs(webexPrefs);
+        const persistedToken = await getWebexAccessToken();
+        if (!persistedToken) {
+          throw new Error(
+            "Webex login failed: token was not persisted in Appwrite prefs. Please verify browser cookie settings and Appwrite session."
+          );
+        }
+        if (persistedToken !== webexPrefs.accessToken) {
+          throw new Error(
+            "Webex login failed: persisted token mismatch. Please clear session and sign in again."
+          );
+        }
+        clearWebexOAuthState();
 
-        await storeWebexPrefs({
-          accessToken: tokenResponse.access_token,
-          refreshToken: tokenResponse.refresh_token,
-          expiresAt: tokenResponse.expires_in
-            ? Date.now() + tokenResponse.expires_in * 1000
-            : undefined,
-          userId: me.id,
-          email: me.emails?.[0] || me.email,
-          name: me.displayName || me.firstName,
-        });
+        // Canonical auth identity must come from Appwrite account ID.
+        const appwriteUser = await account.get();
 
-        dispatch(setCredentials(userForStore));
+        dispatch(
+          setCredentials({
+            $id: appwriteUser.$id,
+            email: appwriteUser.email || webexPrefs.email || "",
+            name: appwriteUser.name || webexPrefs.name || "Webex User",
+          })
+        );
         dispatch(setLoading(false));
 
         setMessage("Webex sign-in complete. Redirecting...");

@@ -7,7 +7,7 @@ import {
 } from "./appwriteConfig";
 import type { Message } from "./boardStorage";
 
-const LOCAL_CHAT_PREFIX = "chat-";
+const memoryChat = new Map<string, Message[]>();
 
 function safeJsonParse<T>(value: unknown, fallback: T): T {
   if (typeof value !== "string") return fallback;
@@ -27,13 +27,12 @@ function mapMessage(doc: any): Message {
   };
 }
 
-function readLocalMessages(boardId: string): Message[] {
-  const data = localStorage.getItem(`${LOCAL_CHAT_PREFIX}${boardId}`);
-  return data ? safeJsonParse<Message[]>(data, []) : [];
+function readMemoryMessages(boardId: string): Message[] {
+  return [...(memoryChat.get(boardId) || [])];
 }
 
-function writeLocalMessages(boardId: string, messages: Message[]) {
-  localStorage.setItem(`${LOCAL_CHAT_PREFIX}${boardId}`, JSON.stringify(messages));
+function writeMemoryMessages(boardId: string, messages: Message[]) {
+  memoryChat.set(boardId, [...messages]);
 }
 
 function makeLocalId() {
@@ -50,7 +49,7 @@ export async function listChatMessages(boardId: string): Promise<Message[]> {
     );
     return result.documents.map(mapMessage);
   } catch {
-    return readLocalMessages(boardId);
+    return readMemoryMessages(boardId);
   }
 }
 
@@ -80,10 +79,10 @@ export async function createChatMessage(
     );
     return mapMessage(doc);
   } catch {
-    const messages = readLocalMessages(boardId);
+    const messages = readMemoryMessages(boardId);
     const newMessage: Message = { id: makeLocalId(), ...message };
     messages.push(newMessage);
-    writeLocalMessages(boardId, messages);
+    writeMemoryMessages(boardId, messages);
     return newMessage;
   }
 }
@@ -106,15 +105,12 @@ export async function updateChatMessage(
       }
     );
   } catch {
-    const prefix = `${LOCAL_CHAT_PREFIX}`;
-    const keys = Object.keys(localStorage).filter((key) => key.startsWith(prefix));
-    for (const key of keys) {
-      const boardId = key.slice(prefix.length);
-      const messages = readLocalMessages(boardId);
+    for (const [boardId, storedMessages] of memoryChat.entries()) {
+      const messages = [...storedMessages];
       const index = messages.findIndex((msg) => msg.id === messageId);
       if (index !== -1) {
         messages[index] = { ...messages[index], ...updates };
-        writeLocalMessages(boardId, messages);
+        writeMemoryMessages(boardId, messages);
         break;
       }
     }
@@ -139,7 +135,7 @@ export async function deleteChatMessages(boardId: string): Promise<void> {
       )
     );
   } catch {
-    localStorage.removeItem(`${LOCAL_CHAT_PREFIX}${boardId}`);
+    memoryChat.delete(boardId);
   }
 }
 
@@ -159,7 +155,7 @@ export async function getFirstUserMessageText(boardId: string): Promise<string |
     const doc = result.documents[0];
     return doc ? doc.text || null : null;
   } catch {
-    const messages = readLocalMessages(boardId);
+    const messages = readMemoryMessages(boardId);
     const first = messages.find((msg) => msg.role === "user" && msg.text.trim() !== "");
     return first ? first.text : null;
   }

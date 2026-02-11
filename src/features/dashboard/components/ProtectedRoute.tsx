@@ -19,7 +19,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         return;
       }
 
-      setIsAuthenticated(isWebexSessionValid());
+      setIsAuthenticated(await isWebexSessionValid());
     };
 
     checkAuth();
