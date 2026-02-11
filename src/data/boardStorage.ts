@@ -8,6 +8,8 @@ import {
   assertAppwriteConfig,
 } from "./appwriteConfig";
 
+const LOCAL_BOARDS_PREFIX = "boards-";
+
 export type Message = {
   id: string;
   text: string;
@@ -51,6 +53,23 @@ function safeJsonParse<T>(value: unknown, fallback: T): T {
   }
 }
 
+function getLocalBoardsKey(userId: string) {
+  return `${LOCAL_BOARDS_PREFIX}${userId}`;
+}
+
+function readLocalBoards(userId: string): Board[] {
+  const data = localStorage.getItem(getLocalBoardsKey(userId));
+  return data ? safeJsonParse<Board[]>(data, []) : [];
+}
+
+function writeLocalBoards(userId: string, boards: Board[]) {
+  localStorage.setItem(getLocalBoardsKey(userId), JSON.stringify(boards));
+}
+
+function makeLocalId() {
+  return globalThis.crypto?.randomUUID?.() ?? `local_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
 function mapBoard(doc: any): Board {
   return {
     id: doc.$id,
@@ -61,40 +80,56 @@ function mapBoard(doc: any): Board {
 }
 
 export async function createBoard(userId: string): Promise<Board> {
-  assertAppwriteConfig();
-  const doc = await databases.createDocument(
-    APPWRITE_DATABASE_ID,
-    APPWRITE_COLLECTION_BOARDS,
-    ID.unique(),
-    {
+  try {
+    assertAppwriteConfig();
+    const doc = await databases.createDocument(
+      APPWRITE_DATABASE_ID,
+      APPWRITE_COLLECTION_BOARDS,
+      ID.unique(),
+      {
+        userId,
+        title: "Untitled Board",
+        widgetsJson: JSON.stringify([]),
+      },
+      [
+        Permission.read(Role.user(userId)),
+        Permission.update(Role.user(userId)),
+        Permission.delete(Role.user(userId)),
+      ]
+    );
+    return mapBoard(doc);
+  } catch {
+    const boards = readLocalBoards(userId);
+    const newBoard: Board = {
+      id: makeLocalId(),
       userId,
       title: "Untitled Board",
-      widgetsJson: JSON.stringify([]),
-    },
-    [
-      Permission.read(Role.user(userId)),
-      Permission.update(Role.user(userId)),
-      Permission.delete(Role.user(userId)),
-    ]
-  );
-
-  return mapBoard(doc);
+      widgets: [],
+      messages: [],
+    };
+    boards.push(newBoard);
+    writeLocalBoards(userId, boards);
+    return newBoard;
+  }
 }
 
 export async function getBoards(userId: string): Promise<Board[]> {
-  assertAppwriteConfig();
-  const result = await databases.listDocuments(
-    APPWRITE_DATABASE_ID,
-    APPWRITE_COLLECTION_BOARDS,
-    [Query.equal("userId", [userId])]
-  );
-
-  return result.documents.map(mapBoard);
+  try {
+    assertAppwriteConfig();
+    const result = await databases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      APPWRITE_COLLECTION_BOARDS,
+      [Query.equal("userId", [userId])]
+    );
+    return result.documents.map(mapBoard);
+  } catch {
+    return readLocalBoards(userId);
+  }
 }
 
 export async function getBoardById(userId: string, id: string): Promise<Board | undefined> {
-  assertAppwriteConfig();
   try {
+    assertAppwriteConfig();
     const doc = await databases.getDocument(
       APPWRITE_DATABASE_ID,
       APPWRITE_COLLECTION_BOARDS,
@@ -103,62 +138,79 @@ export async function getBoardById(userId: string, id: string): Promise<Board | 
     if (doc.userId !== userId) return undefined;
     return mapBoard(doc);
   } catch {
-    return undefined;
+    const boards = readLocalBoards(userId);
+    return boards.find((board) => board.id === id);
   }
 }
 
 export async function updateBoard(userId: string, board: Board): Promise<void> {
-  assertAppwriteConfig();
-  await databases.updateDocument(
-    APPWRITE_DATABASE_ID,
-    APPWRITE_COLLECTION_BOARDS,
-    board.id,
-    {
-      userId: board.userId || userId,
-      title: board.title,
-      widgetsJson: JSON.stringify(board.widgets || []),
+  try {
+    assertAppwriteConfig();
+    await databases.updateDocument(
+      APPWRITE_DATABASE_ID,
+      APPWRITE_COLLECTION_BOARDS,
+      board.id,
+      {
+        userId: board.userId || userId,
+        title: board.title,
+        widgetsJson: JSON.stringify(board.widgets || []),
+      }
+    );
+  } catch {
+    const boards = readLocalBoards(userId);
+    const index = boards.findIndex((b) => b.id === board.id);
+    if (index !== -1) {
+      boards[index] = board;
+      writeLocalBoards(userId, boards);
     }
-  );
+  }
 }
 
 export async function deleteBoard(userId: string, id: string): Promise<void> {
-  assertAppwriteConfig();
-
-  await databases.deleteDocument(
-    APPWRITE_DATABASE_ID,
-    APPWRITE_COLLECTION_BOARDS,
-    id
-  );
-
-  // Delete canvas doc if present
   try {
+    assertAppwriteConfig();
+
     await databases.deleteDocument(
       APPWRITE_DATABASE_ID,
-      APPWRITE_COLLECTION_CANVAS,
+      APPWRITE_COLLECTION_BOARDS,
       id
     );
-  } catch {
-    // Ignore if not found
-  }
 
-  // Delete associated chat messages
-  try {
-    const chats = await databases.listDocuments(
-      APPWRITE_DATABASE_ID,
-      APPWRITE_COLLECTION_CHAT,
-      [Query.equal("boardId", [id])]
-    );
-    await Promise.all(
-      chats.documents.map((doc) =>
-        databases.deleteDocument(
-          APPWRITE_DATABASE_ID,
-          APPWRITE_COLLECTION_CHAT,
-          doc.$id
+    // Delete canvas doc if present
+    try {
+      await databases.deleteDocument(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_COLLECTION_CANVAS,
+        id
+      );
+    } catch {
+      // Ignore if not found
+    }
+
+    // Delete associated chat messages
+    try {
+      const chats = await databases.listDocuments(
+        APPWRITE_DATABASE_ID,
+        APPWRITE_COLLECTION_CHAT,
+        [Query.equal("boardId", [id])]
+      );
+      await Promise.all(
+        chats.documents.map((doc) =>
+          databases.deleteDocument(
+            APPWRITE_DATABASE_ID,
+            APPWRITE_COLLECTION_CHAT,
+            doc.$id
+          )
         )
-      )
-    );
+      );
+    } catch {
+      // Ignore errors for chat cleanup
+    }
   } catch {
-    // Ignore errors for chat cleanup
+    const boards = readLocalBoards(userId).filter((board) => board.id !== id);
+    writeLocalBoards(userId, boards);
+    localStorage.removeItem(`chat-${id}`);
+    localStorage.removeItem(`canvas-${id}`);
   }
 }
 

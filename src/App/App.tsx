@@ -5,6 +5,7 @@ import type { RootState, AppDispatch } from '../store';
 import { setTheme } from '../store/uiSlice';
 import { checkAuthStatus } from '../store/authSlice';
 import { setDarkTheme, setLightTheme } from "../lib/theme";
+import authService from "../features/dashboard/components/utils/authService";
 
 import Header from "../shared/components/header/header";
 import BoardsPage from "../features/dashboard/BoardsPage";
@@ -16,6 +17,7 @@ import ProtectedRoute from "../features/dashboard/components/ProtectedRoute";
 
 export default function App() {
   const location = useLocation();
+  const [themeInitialized, setThemeInitialized] = useState(false);
   
 
   // Hide header only on public entry page
