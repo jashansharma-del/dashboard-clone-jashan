@@ -7,13 +7,17 @@ import type { Node } from "reactflow";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import "reactflow/dist/style.css";
 import { useParams } from "react-router-dom";
-import { Home, MoreHorizontal } from "lucide-react";
+import { Home, MoreHorizontal, RotateCcw } from "lucide-react";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../../../store";
 
 import { useDragDrop } from "../../../../shared/hooks/DragDropContext";
 import { CanvasCard, AIAssistantCard, PieChartNode, BarChartNode, LineChartNode } from "../../components";
 import { findNonOverlappingPosition } from "../../components/utils";
 import type { PieNodeData, BarNodeData, LineNodeData } from "../../types/chartTypes";
 import { getFirstUserMessageText } from "../../../../data/chatStorage";
+import { heartbeatPresence, listPresence, type PresenceRecord } from "../../../../data/presenceStorage";
+import { appendBoardEvent, listSnapshots } from "../../../../data/versionStorage";
 
 /* ============================
    BOARD CANVAS (Inner component with useReactFlow)
@@ -21,11 +25,13 @@ import { getFirstUserMessageText } from "../../../../data/chatStorage";
 
 const BoardCanvasInner = () => {
   const { boardId } = useParams<{ boardId: string }>();
-  const { droppedNodes, addNode, onNodesChange } = useDragDrop();
+  const { droppedNodes, addNode, clearDroppedNodes, onNodesChange } = useDragDrop();
+  const userId = useSelector((state: RootState) => state.auth.user?.$id || "");
   
   const reactFlowInstance = useReactFlow();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [presence, setPresence] = useState<PresenceRecord[]>([]);
 
   useEffect(() => {
     console.log("🔵 BoardCanvasInner - droppedNodes:", droppedNodes);
@@ -171,6 +177,32 @@ const BoardCanvasInner = () => {
     }
   }, [reactFlowInstance, addNode, droppedNodes]);
 
+  useEffect(() => {
+    if (!boardId) return;
+    const interval = window.setInterval(async () => {
+      const items = await listPresence(boardId);
+      const activeCutoff = Date.now() - 15000;
+      setPresence(
+        items.filter(
+          (item) => new Date(item.lastSeenAt).getTime() >= activeCutoff && item.userId !== userId
+        )
+      );
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [boardId, userId]);
+
+  const onMouseMove = useCallback(
+    async (e: React.MouseEvent) => {
+      if (!boardId || !userId) return;
+      const bounds = wrapperRef.current?.getBoundingClientRect();
+      if (!bounds) return;
+      const x = Math.max(0, Math.round(e.clientX - bounds.left));
+      const y = Math.max(0, Math.round(e.clientY - bounds.top));
+      await heartbeatPresence({ boardId, userId, cursorX: x, cursorY: y });
+    },
+    [boardId, userId]
+  );
+
 
   console.log("🖼️ Rendering ReactFlow with", droppedNodes.length, "nodes");
 
@@ -199,11 +231,28 @@ const BoardCanvasInner = () => {
     };
   }, [boardId]);
 
+  const handleRestoreLatestSnapshot = useCallback(async () => {
+    if (!boardId || !userId) return;
+    const snapshots = await listSnapshots(boardId);
+    const latest = snapshots[0];
+    if (!latest) return;
+    const nodes = JSON.parse(latest.nodesJson || "[]") as Node[];
+    clearDroppedNodes();
+    nodes.forEach((node) => addNode(node));
+    await appendBoardEvent({
+      boardId,
+      actorId: userId,
+      eventType: "restore_version",
+      payload: { restoredVersion: latest.version },
+    });
+  }, [boardId, userId, clearDroppedNodes, addNode]);
+
   return (
     <div
       ref={wrapperRef}
       className="absolute inset-0 bg-background"
       onDragLeave={onDragLeave}
+      onMouseMove={onMouseMove}
     >
       <ReactFlow
         nodes={droppedNodes}
@@ -236,9 +285,25 @@ const BoardCanvasInner = () => {
           <span className="text-sm truncate">
             {firstUserMessage ?? "New conversation"}
           </span>
+          <button type="button" onClick={handleRestoreLatestSnapshot} title="Restore latest snapshot">
+            <RotateCcw className="w-4 h-4" />
+          </button>
           <MoreHorizontal />
         </CanvasCard>
       </div>
+
+      {presence.map((entry) => (
+        <div
+          key={entry.id}
+          className="absolute pointer-events-none z-10"
+          style={{ left: entry.cursorX, top: entry.cursorY }}
+        >
+          <div className="w-2 h-2 rounded-full bg-blue-600" />
+          <div className="text-[10px] bg-white/90 dark:bg-gray-900/90 border rounded px-1 mt-1">
+            {entry.userId.slice(0, 6)}
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

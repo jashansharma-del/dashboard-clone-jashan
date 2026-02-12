@@ -7,6 +7,7 @@ import {
   APPWRITE_COLLECTION_CHAT,
   assertAppwriteConfig,
 } from "./appwriteConfig";
+import { canEditBoard, getBoardRole } from "./shareStorage";
 
 const memoryBoards = new Map<string, Board[]>();
 
@@ -14,6 +15,7 @@ export type Message = {
   id: string;
   text: string;
   role: "user" | "assistant";
+  chartType?: "pie" | "bar" | "line";
   graphData?: {
     label: string;
     value: number;
@@ -39,10 +41,14 @@ export type Widget = {
 export type Board = {
   id: string;
   userId: string;
+  ownerId?: string;
   title: string;
   widgets: Widget[];
   messages?: Message[];
   isPinned?: boolean;
+  archived?: boolean;
+  tags?: string[];
+  lastActivityAt?: string;
 };
 
 function safeJsonParse<T>(value: unknown, fallback: T): T {
@@ -70,9 +76,13 @@ function mapBoard(doc: any): Board {
   return {
     id: doc.$id,
     userId: doc.userId,
+    ownerId: doc.ownerId || doc.userId,
     title: doc.title || "Untitled Board",
     widgets: safeJsonParse<Widget[]>(doc.widgetsJson, []),
     isPinned: typeof doc.isPinned === "boolean" ? doc.isPinned : false,
+    archived: Boolean(doc.archived),
+    tags: Array.isArray(doc.tags) ? doc.tags : [],
+    lastActivityAt: doc.lastActivityAt || doc.$updatedAt || doc.$createdAt,
   };
 }
 
@@ -85,9 +95,13 @@ export async function createBoard(userId: string): Promise<Board> {
       ID.unique(),
       {
         userId,
+        ownerId: userId,
         title: "Untitled Board",
         widgetsJson: JSON.stringify([]),
         isPinned: false,
+        archived: false,
+        tags: [],
+        lastActivityAt: new Date().toISOString(),
       },
       [
         Permission.read(Role.user(userId)),
@@ -105,6 +119,10 @@ export async function createBoard(userId: string): Promise<Board> {
       widgets: [],
       messages: [],
       isPinned: false,
+      archived: false,
+      tags: [],
+      ownerId: userId,
+      lastActivityAt: new Date().toISOString(),
     };
     boards.push(newBoard);
     writeMemoryBoards(userId, boards);
@@ -134,7 +152,10 @@ export async function getReadableBoards(userId: string): Promise<Board[]> {
       APPWRITE_COLLECTION_BOARDS,
       [Query.limit(200)]
     );
-    return result.documents.map(mapBoard);
+    // Readability is enforced by Appwrite ACLs; this list includes owned and shared boards.
+    return result.documents
+      .map(mapBoard)
+      .filter((board) => Boolean(board.ownerId || board.userId || userId));
   } catch {
     return readMemoryBoards(userId);
   }
@@ -148,7 +169,6 @@ export async function getBoardById(userId: string, id: string): Promise<Board | 
       APPWRITE_COLLECTION_BOARDS,
       id
     );
-    if (doc.userId !== userId) return undefined;
     return mapBoard(doc);
   } catch {
     const boards = readMemoryBoards(userId);
@@ -157,6 +177,10 @@ export async function getBoardById(userId: string, id: string): Promise<Board | 
 }
 
 export async function updateBoard(userId: string, board: Board): Promise<void> {
+  const editable = await canEditBoard(board.id, userId).catch(() => true);
+  if (!editable) {
+    throw new Error("You do not have permission to update this board.");
+  }
   try {
     assertAppwriteConfig();
     await databases.updateDocument(
@@ -165,9 +189,13 @@ export async function updateBoard(userId: string, board: Board): Promise<void> {
       board.id,
       {
         userId: board.userId || userId,
+        ownerId: board.ownerId || board.userId || userId,
         title: board.title,
         widgetsJson: JSON.stringify(board.widgets || []),
         isPinned: Boolean(board.isPinned),
+        archived: Boolean(board.archived),
+        tags: board.tags || [],
+        lastActivityAt: new Date().toISOString(),
       }
     );
   } catch {
@@ -181,6 +209,10 @@ export async function updateBoard(userId: string, board: Board): Promise<void> {
 }
 
 export async function deleteBoard(userId: string, id: string): Promise<void> {
+  const role = await getBoardRole(id, userId).catch(() => "owner");
+  if (role !== "owner") {
+    throw new Error("Only board owners can delete boards.");
+  }
   try {
     assertAppwriteConfig();
 
