@@ -8,6 +8,7 @@ import { setDarkTheme, setLightTheme } from "../lib/theme";
 import authService from "../features/dashboard/components/utils/authService";
 
 import Header from "../shared/components/header/header";
+import NotificationCenter from "../shared/components/ui/ui/NotificationCenter";
 import BoardsPage from "../features/dashboard/BoardsPage";
 import NewBoardPage from "../features/dashboard/pages/NewBoardPage";
 import SignIn from "../features/dashboard/components/auth/SignIn";
@@ -71,6 +72,7 @@ export default function App() {
     
       <div className="min-h-screen bg-background text-foreground w-full max-w-full overflow-x-hidden">
         {!hideHeader && <Header />}
+        <NotificationCenter />
 
         <Routes>
           {/* ✅ PUBLIC ENTRY ROUTE */}

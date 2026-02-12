@@ -19,6 +19,13 @@ export default function WebexCallback() {
   const dispatch = useDispatch<AppDispatch>();
   const [message, setMessage] = useState("Completing Webex sign-in...");
 
+  const getPostLoginRedirect = () => {
+    const redirectPath = sessionStorage.getItem("post_login_redirect");
+    if (!redirectPath) return "/boards";
+    sessionStorage.removeItem("post_login_redirect");
+    return redirectPath;
+  };
+
   useEffect(() => {
     const run = async () => {
       dispatch(setLoading(true));
@@ -79,7 +86,7 @@ export default function WebexCallback() {
         dispatch(setLoading(false));
 
         setMessage("Webex sign-in complete. Redirecting...");
-        navigate("/boards", { replace: true });
+        navigate(getPostLoginRedirect(), { replace: true });
       } catch (err) {
         const messageText = err instanceof Error ? err.message : "Webex sign-in failed.";
         dispatch(setError(messageText));

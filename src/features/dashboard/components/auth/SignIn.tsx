@@ -31,6 +31,13 @@ export default function SignIn() {
     formState: { errors, isSubmitting },
   } = useForm<AuthFormData>();
 
+  const getPostLoginRedirect = () => {
+    const redirectPath = sessionStorage.getItem("post_login_redirect");
+    if (!redirectPath) return "/boards";
+    sessionStorage.removeItem("post_login_redirect");
+    return redirectPath;
+  };
+
   const onSubmit = async (data: AuthFormData) => {
     setSuccess("");
     setWebexError("");
@@ -41,12 +48,13 @@ export default function SignIn() {
       const result = await dispatch(registerThunk({ email, password, name: name || "" }));
       if (registerThunk.fulfilled.match(result)) {
         setSuccess("Account created successfully!");
-        setTimeout(() => navigate("/boards"), 1500);
+        const targetPath = getPostLoginRedirect();
+        setTimeout(() => navigate(targetPath), 1500);
       }
     } else {
       const result = await dispatch(loginThunk({ email, password }));
       if (loginThunk.fulfilled.match(result)) {
-        navigate("/boards");
+        navigate(getPostLoginRedirect());
       }
     }
   };

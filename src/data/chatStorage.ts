@@ -6,6 +6,7 @@ import {
   assertAppwriteConfig,
 } from "./appwriteConfig";
 import type { Message } from "./boardStorage";
+import { canEditBoard } from "./shareStorage";
 
 const memoryChat = new Map<string, Message[]>();
 
@@ -23,6 +24,10 @@ function mapMessage(doc: any): Message {
     id: doc.$id,
     text: doc.text,
     role: doc.role,
+    chartType:
+      doc.chartype === "pie" || doc.chartype === "bar" || doc.chartype === "line"
+        ? doc.chartype
+        : undefined,
     graphData: safeJsonParse(doc.graphdatajson, undefined),
   };
 }
@@ -58,6 +63,10 @@ export async function createChatMessage(
   message: Omit<Message, "id">,
   userId: string
 ): Promise<Message> {
+  const editable = await canEditBoard(boardId, userId).catch(() => true);
+  if (!editable) {
+    throw new Error("You do not have permission to add messages to this board.");
+  }
   try {
     assertAppwriteConfig();
     const doc = await databases.createDocument(

@@ -1,10 +1,11 @@
-import { ID, Permission, Role, Query } from "appwrite";
+import { ID, Query } from "appwrite";
 import { databases } from "../features/dashboard/components/utils/authService";
 import {
   APPWRITE_DATABASE_ID,
   APPWRITE_COLLECTION_CANVAS,
   assertAppwriteConfig,
 } from "./appwriteConfig";
+import { canEditBoard } from "./shareStorage";
 
 const memoryCanvas = new Map<string, { nodes: any[]; edges: any[] }>();
 
@@ -23,6 +24,12 @@ export async function saveCanvas(
   edges: unknown[],
   userId?: string
 ): Promise<void> {
+  if (userId) {
+    const editable = await canEditBoard(boardId, userId).catch(() => true);
+    if (!editable) {
+      throw new Error("You do not have permission to update this canvas.");
+    }
+  }
   try {
     assertAppwriteConfig();
     const payload = {
@@ -30,14 +37,6 @@ export async function saveCanvas(
       nodesjson: JSON.stringify(nodes || []),
       edgesjson: JSON.stringify(edges || []),
     };
-    const permissions = userId
-      ? [
-          Permission.read(Role.user(userId)),
-          Permission.update(Role.user(userId)),
-          Permission.delete(Role.user(userId)),
-        ]
-      : undefined;
-
     const existing = await databases.listDocuments(
       APPWRITE_DATABASE_ID,
       APPWRITE_COLLECTION_CANVAS,
@@ -58,8 +57,7 @@ export async function saveCanvas(
       APPWRITE_DATABASE_ID,
       APPWRITE_COLLECTION_CANVAS,
       ID.unique(),
-      payload,
-      permissions
+      payload
     );
   } catch (error) {
     memoryCanvas.set(boardId, { nodes: nodes || [], edges: edges || [] });

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { authService } from "../../../features/dashboard/components/utils/authService";
 import { isWebexSessionValid } from "./auth/webexAuth";
 
@@ -8,6 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   
 
@@ -37,6 +38,10 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   // not logged in -> redirect
 
   if(!isAuthenticated) {
+    const intendedPath = `${location.pathname}${location.search}${location.hash}`;
+    if (intendedPath && intendedPath !== "/") {
+      sessionStorage.setItem("post_login_redirect", intendedPath);
+    }
     return <Navigate to="/" replace />;
   }  
 

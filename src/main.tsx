@@ -5,6 +5,9 @@ import { Provider } from 'react-redux';
 import App from "./App/App";
 import "./index.css";
 import { store } from '../src/store';
+import { enforceLocalhostOnly } from "./lib/runtimeGuard";
+
+enforceLocalhostOnly();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

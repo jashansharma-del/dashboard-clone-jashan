@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/button/button";
 import { Input } from "../ui/ui/input";
+import { listNotifications, markNotificationRead, type UserNotification } from "../../../data/notificationsStorage";
 
 
 export default function Header() {
@@ -27,10 +28,31 @@ export default function Header() {
   const navigate = useNavigate();
   
   const [open, setOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const [inbox, setInbox] = useState<UserNotification[]>([]);
   
   const userName = useSelector((state: RootState) => {
     return state.auth.user?.name || "User";
   });
+  const userId = useSelector((state: RootState) => state.auth.user?.$id || "");
+  const uiNotifications = useSelector((state: RootState) => state.ui.notifications);
+
+  const unreadCount =
+    inbox.filter((n) => !n.readAt).length + uiNotifications.length;
+
+  const openInbox = async () => {
+    if (!userId) return;
+    setInboxOpen((prev) => !prev);
+    const loaded = await listNotifications(userId);
+    setInbox(loaded);
+  };
+
+  const onRead = async (id: string) => {
+    await markNotificationRead(id);
+    setInbox((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, readAt: new Date().toISOString() } : item))
+    );
+  };
 
   const handleToggleTheme = () => {
     dispatch(toggleTheme());
@@ -84,7 +106,37 @@ export default function Header() {
           
           <Wand2 className="w-5 h-5 cursor-pointer flex-shrink-0 hidden lg:flex" />
           <HelpCircle className="w-5 h-5 cursor-pointer flex-shrink-0 hidden lg:flex" />
-          <Bell className="w-5 h-5 cursor-pointer flex-shrink-0 hidden lg:flex" />
+          <div className="relative hidden lg:block">
+            <Bell className="w-5 h-5 cursor-pointer flex-shrink-0" onClick={openInbox} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-2 -right-2 rounded-full bg-red-500 text-[10px] text-white px-1.5 py-0.5">
+                {unreadCount}
+              </span>
+            )}
+            {inboxOpen && (
+              <div className="absolute right-0 mt-2 w-80 rounded-md border border-gray-700 bg-gray-800 p-2 shadow-xl z-[120]">
+                <div className="text-xs font-semibold text-gray-300 px-2 py-1">Inbox</div>
+                <div className="max-h-64 overflow-y-auto space-y-1">
+                  {inbox.length === 0 && (
+                    <div className="text-xs text-gray-400 px-2 py-2">No notifications</div>
+                  )}
+                  {inbox.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`w-full text-left rounded px-2 py-2 hover:bg-gray-700 ${
+                        item.readAt ? "opacity-70" : ""
+                      }`}
+                      onClick={() => onRead(item.id)}
+                    >
+                      <div className="text-xs text-gray-200">{item.title}</div>
+                      <div className="text-[11px] text-gray-400">{item.body}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="relative flex-shrink-0">
             <div
