@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -25,13 +25,37 @@ import {
   type Message,
   type ChartData,
 } from "../../data/boardStorage";
-import { listChatMessages } from "../../data/chatStorage";
+import { createChatMessage, listChatMessages } from "../../data/chatStorage";
+import { loadCanvas, saveCanvas } from "../../data/canvasStorage";
 import {
   type WebexPerson,
   searchWebexPeopleByEmail,
   sendWebexDirectMessage,
 } from "./components/auth/webexAuth";
 import { getWebexAccessToken } from "./components/utils/webexStorage";
+
+const IMPORTED_BOARD_IDS_STORAGE_KEY = "imported-board-ids";
+
+function loadImportedBoardIds(userId: string | null): string[] {
+  if (!userId) return [];
+  try {
+    const raw = window.localStorage.getItem(`${IMPORTED_BOARD_IDS_STORAGE_KEY}:${userId}`);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((id) => typeof id === "string");
+  } catch {
+    return [];
+  }
+}
+
+function persistImportedBoardIds(userId: string | null, boardIds: string[]) {
+  if (!userId) return;
+  window.localStorage.setItem(
+    `${IMPORTED_BOARD_IDS_STORAGE_KEY}:${userId}`,
+    JSON.stringify(boardIds)
+  );
+}
 
 export default function BoardsPage() {
   const navigate = useNavigate();
@@ -50,16 +74,36 @@ export default function BoardsPage() {
   const [isSending, setIsSending] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [shareSuccess, setShareSuccess] = useState<string | null>(null);
+  const [importedBoardIds, setImportedBoardIds] = useState<string[]>([]);
+  const [importingBoardId, setImportingBoardId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadBoardsForUser = useCallback(async () => {
     if (!userId) {
       setBoards([]);
       setBoardMessages({});
       return;
     }
 
+    const loadedBoards = await getReadableBoards(userId);
+    setBoards(loadedBoards);
+
+    const messagesEntries = await Promise.all(
+      loadedBoards.map(async (board) => {
+        const messages = await listChatMessages(board.id);
+        return [board.id, messages] as const;
+      })
+    );
+    setBoardMessages(Object.fromEntries(messagesEntries));
+  }, [userId]);
+
+  useEffect(() => {
     let cancelled = false;
     const loadBoards = async () => {
+      if (!userId) {
+        setBoards([]);
+        setBoardMessages({});
+        return;
+      }
       const loadedBoards = await getReadableBoards(userId);
       if (cancelled) return;
       setBoards(loadedBoards);
@@ -79,6 +123,10 @@ export default function BoardsPage() {
     return () => {
       cancelled = true;
     };
+  }, [userId]);
+
+  useEffect(() => {
+    setImportedBoardIds(loadImportedBoardIds(userId));
   }, [userId]);
 
   // Listen for theme changes to force re-render
@@ -106,9 +154,8 @@ export default function BoardsPage() {
       return;
     }
     const newBoard = await createBoard(userId);
-    const updatedBoards = await getReadableBoards(userId);
-    setBoards(updatedBoards);
-    setBoardMessages((prev) => ({ ...prev, [newBoard.id]: [] }));
+    await loadBoardsForUser();
+    setBoardMessages((prev) => ({ ...prev, [newBoard.id]: prev[newBoard.id] || [] }));
     navigate(`/newboard/${newBoard.id}`);
   } catch (error) {
     console.error("Failed to create board:", error);
@@ -154,7 +201,7 @@ export default function BoardsPage() {
     if (!userId || board.userId !== userId) return;
     const updatedBoard: Board = {
       ...board,
-      isPinned: !Boolean(board.isPinned),
+      isPinned: !board.isPinned,
     };
 
     await updateBoard(userId, updatedBoard);
@@ -168,19 +215,77 @@ export default function BoardsPage() {
   const confirmDelete = async () => {
     if (boardToDelete && userId) {
       await deleteBoard(userId, boardToDelete);
-      const updatedBoards = await getReadableBoards(userId);
-      setBoards(updatedBoards);
+      await loadBoardsForUser();
       setBoardMessages((prev) => {
         const next = { ...prev };
         delete next[boardToDelete];
         return next;
       });
+      const nextImportedIds = importedBoardIds.filter((id) => id !== boardToDelete);
+      setImportedBoardIds(nextImportedIds);
+      persistImportedBoardIds(userId, nextImportedIds);
       setBoardToDelete(null);
     }
   };
 
   const cancelDelete = () => {
     setBoardToDelete(null);
+  };
+
+  const handleImportBoard = async (sourceBoard: Board) => {
+    if (!userId || importingBoardId) return;
+    setImportingBoardId(sourceBoard.id);
+    try {
+      const sourceMessages = await listChatMessages(sourceBoard.id);
+      const sourceCanvas = await loadCanvas(sourceBoard.id);
+      const importedWidgets = (sourceBoard.widgets || []).map((widget) => ({
+        ...widget,
+        position: { ...widget.position },
+        props: widget.props ? { ...widget.props } : undefined,
+      }));
+
+      const importedBoard = await createBoard(userId);
+
+      const importedBoardData: Board = {
+        ...importedBoard,
+        title: sourceBoard.title || "Untitled Board",
+        widgets: importedWidgets,
+        isPinned: false,
+      };
+
+      await updateBoard(userId, importedBoardData);
+
+      await Promise.all(
+        sourceMessages.map((message) =>
+          createChatMessage(
+            importedBoard.id,
+            {
+              text: message.text,
+              role: message.role,
+              graphData: message.graphData,
+            },
+            userId
+          )
+        )
+      );
+
+      await saveCanvas(importedBoard.id, sourceCanvas.nodes, sourceCanvas.edges, userId);
+
+      const nextImportedIds = Array.from(new Set([...importedBoardIds, importedBoard.id]));
+      setImportedBoardIds(nextImportedIds);
+      persistImportedBoardIds(userId, nextImportedIds);
+
+      setBoards((prev) => {
+        const next = prev.filter((board) => board.id !== importedBoard.id);
+        return [...next, importedBoardData];
+      });
+      setBoardMessages((prev) => ({ ...prev, [importedBoard.id]: sourceMessages }));
+    } catch (error) {
+      console.error("Failed to import board:", error);
+      window.alert("Unable to import this board right now.");
+    } finally {
+      setImportingBoardId(null);
+    }
   };
 
   const openShareDialog = (boardId: string) => {
@@ -361,6 +466,7 @@ export default function BoardsPage() {
                       widgets={getBoardWidgets(board)}
                       messages={boardMessages[board.id] || []}
                       onClick={() => navigate(`/newboard/${board.id}`)}
+                      badgeLabel={importedBoardIds.includes(board.id) ? "Imported" : undefined}
                       showMenu
                       canMutate
                       isPinned={Boolean(board.isPinned)}
@@ -393,6 +499,8 @@ export default function BoardsPage() {
                       showMenu
                       canMutate={false}
                       isPinned={Boolean(board.isPinned)}
+                      onImport={() => handleImportBoard(board)}
+                      isImporting={importingBoardId === board.id}
                       onShare={() => openShareDialog(board.id)}
                       onPinToggle={() => window.alert("Coming soon")}
                       onDelete={() => window.alert("Coming soon")}

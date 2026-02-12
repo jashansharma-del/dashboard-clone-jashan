@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import * as htmlToImage from "html-to-image";
 import BoardPreview from "./BoardPreview";
 import type { Message } from "../../../../data/boardStorage";
-import { MoreVertical, Pin, PinOff, Share2, Trash2 } from "lucide-react";
+import { Download, MoreVertical, Pin, PinOff, Share2, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +25,9 @@ type BoardCardProps = {
   onShare?: () => void;
   onPinToggle?: () => void;
   onDelete?: () => void;
+  onImport?: () => void;
+  isImporting?: boolean;
+  badgeLabel?: string;
 };
 
 export default function BoardCard({
@@ -38,6 +41,9 @@ export default function BoardCard({
   onShare,
   onPinToggle,
   onDelete,
+  onImport,
+  isImporting = false,
+  badgeLabel,
 }: BoardCardProps) {
   const previewRef = useRef<HTMLDivElement>(null);
   const [image, setImage] = useState<string | null>(null);
@@ -106,6 +112,18 @@ export default function BoardCard({
             align="end"
             onClick={(e) => e.stopPropagation()}
           >
+            {onImport && (
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onImport();
+                }}
+              >
+                <Download className="h-4 w-4" />
+                {isImporting ? "Importing..." : "Import"}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onSelect={(e) => {
                 e.preventDefault();
@@ -139,6 +157,11 @@ export default function BoardCard({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      )}
+      {badgeLabel && (
+        <span className="absolute top-3 left-3 z-20 rounded-md bg-emerald-600/90 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+          {badgeLabel}
+        </span>
       )}
       <div className="absolute opacity-0 pointer-events-none">
         <div ref={previewRef}>

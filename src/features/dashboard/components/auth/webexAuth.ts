@@ -55,7 +55,9 @@ const getWebexConfig = (): WebexConfig => {
   const clientId = import.meta.env.VITE_WEBEX_CLIENT_ID || "";
   const redirectUri =
     import.meta.env.VITE_WEBEX_REDIRECT_URI || `${window.location.origin}/webex/callback`;
-  const scopes = import.meta.env.VITE_WEBEX_SCOPES || "spark:people_read";
+  const scopes =
+    import.meta.env.VITE_WEBEX_SCOPES ||
+    "spark:people_read spark:messages_read spark:messages_write";
   const flow = (import.meta.env.VITE_WEBEX_OAUTH_FLOW || "implicit") as WebexConfig["flow"];
 
   return {
@@ -112,6 +114,7 @@ export const startWebexLogin = async () => {
     redirect_uri: redirectUri,
     scope: scopes,
     state,
+    prompt: "consent",
   });
 
   if (flow === "implicit") {
