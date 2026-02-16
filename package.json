@@ -1,5 +1,5 @@
 {
-  "name": "cisco-dashboard",
+  "name": "disco-dashboard",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,6 +8,7 @@
     "ai:server": "node server/ai-server.js",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "type-check": "tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {

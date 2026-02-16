@@ -5,8 +5,10 @@ import AIAssistantBody from "./AIAssistantBody";
 
 export default function AIAssistantCard({
   disablePointer = false,
+  onExecuteCommand,
 }: {
   disablePointer?: boolean;
+  onExecuteCommand?: (command: any) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -39,28 +41,28 @@ export default function AIAssistantCard({
   };
   return (
     <div
-  className={cn(
-    "bg-white shadow-lg border flex flex-col  dark:border-gray-700 overflow-hidden rounded-xl transition-all duration-300",
-    disablePointer && "pointer-events-none opacity-60",
-    !isFullscreen && !collapsed && "fixed left-2 sm:left-4 md:left-6 bottom-2 sm:bottom-4 max-w-[calc(100vw-1rem)]",
-    !isFullscreen && collapsed && "fixed left-2 sm:left-4 md:left-6 bottom-2 sm:bottom-4 h-[52px] max-w-[calc(100vw-1rem)]",
-    isFullscreen && !collapsed && "fixed top-16 left-0 right-0 bottom-0 w-full h-[calc(100vh-64px)] z-[9999]",
-    isFullscreen && collapsed && "fixed left-2 bottom-2 h-[52px] w-[400px]"
-  )}
-  style={{
-    width: isFullscreen && collapsed ? 300 : isFullscreen ? "100%" : width,
-    height: collapsed
-      ? 52
-      : isFullscreen
-      ? undefined
-      : "calc(100vh - 150px)",
-    transition: "width 0.3s ease",
-    maxWidth: isFullscreen && collapsed ? 300 : isFullscreen ? "100%" : "calc(100vw - 1rem)",
-  }}
->
+      className={cn(
+        "bg-white shadow-lg border flex flex-col  dark:border-gray-700 overflow-hidden rounded-xl transition-all duration-300",
+        disablePointer && "pointer-events-none opacity-60",
+        !isFullscreen && !collapsed && "fixed left-2 sm:left-4 md:left-6 bottom-2 sm:bottom-4 max-w-[calc(100vw-1rem)]",
+        !isFullscreen && collapsed && "fixed left-2 sm:left-4 md:left-6 bottom-2 sm:bottom-4 h-[52px] max-w-[calc(100vw-1rem)]",
+        isFullscreen && !collapsed && "fixed top-16 left-0 right-0 bottom-0 w-full h-[calc(100vh-64px)] z-[9999]",
+        isFullscreen && collapsed && "fixed left-2 bottom-2 h-[52px] w-[400px]"
+      )}
+      style={{
+        width: isFullscreen && collapsed ? 300 : isFullscreen ? "100%" : width,
+        height: collapsed
+          ? 52
+          : isFullscreen
+            ? undefined
+            : "calc(100vh - 150px)",
+        transition: "width 0.3s ease",
+        maxWidth: isFullscreen && collapsed ? 300 : isFullscreen ? "100%" : "calc(100vw - 1rem)",
+      }}
+    >
 
 
-    
+
       {/* HEADER */}
       <div className="flex items-center justify-between h-[52px] px-3 border-b dark:border-gray-700 dark:bg-gray-800">
         <div className="flex items-center gap-2">
@@ -87,7 +89,7 @@ export default function AIAssistantCard({
         </div>
       </div>
 
-      {!collapsed && <AIAssistantBody />}
+      {!collapsed && <AIAssistantBody onExecuteCommand={onExecuteCommand} />}
 
       {/* Right Resize Handle */}
       {!collapsed && !isFullscreen && (

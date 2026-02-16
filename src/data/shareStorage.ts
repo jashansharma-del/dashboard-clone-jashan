@@ -423,10 +423,39 @@ export async function revokeBoardMember(boardId: string, memberId: string): Prom
   }
 }
 
+
+
+// Check if the user has this board in their local storage
+function isLocalBoardOwner(boardId: string, userId: string): boolean {
+  if (typeof window === "undefined") return false;
+  const effectiveId = !APPWRITE_DATABASE_ID
+    ? "local"
+    : (userId || "anonymous");
+
+  const key = `boards:${effectiveId}`;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) {
+      return false;
+    }
+    const boards = JSON.parse(raw);
+    if (!Array.isArray(boards)) return false;
+    const found = boards.some((b: any) => b.id === boardId);
+    return found;
+  } catch (e) {
+    return false;
+  }
+}
+
 export async function getBoardRole(
   boardId: string,
   userId: string
 ): Promise<BoardRole | null> {
+  // If we have it locally, we are the owner (offline-first/local-override)
+  if (isLocalBoardOwner(boardId, userId)) {
+    return "owner";
+  }
+
   try {
     const board = await databases.getDocument(
       APPWRITE_DATABASE_ID,
@@ -446,7 +475,11 @@ export async function getBoardRole(
     const activeMember = members.find(
       (member) => member.userId === userId && member.status === "active"
     );
-    return activeMember ? activeMember.role : null;
+    if (activeMember) {
+      return activeMember.role;
+    }
+    // Fallback for purely local/memory scenarios
+    return "owner";
   }
 }
 

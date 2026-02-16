@@ -10,6 +10,16 @@ import {
 import { canEditBoard, getBoardRole } from "./shareStorage";
 
 const memoryBoards = new Map<string, Board[]>();
+const LOCAL_STORAGE_KEY_PREFIX = "boards:";
+
+// When Appwrite is not configured, we treat all boards as belonging
+// to a single local workspace, regardless of the current user id.
+const useGlobalLocalStore = !APPWRITE_DATABASE_ID;
+
+function effectiveUserId(userId: string): string {
+  if (useGlobalLocalStore) return "local";
+  return userId || "anonymous";
+}
 
 export type Message = {
   id: string;
@@ -60,12 +70,50 @@ function safeJsonParse<T>(value: unknown, fallback: T): T {
   }
 }
 
+function loadBoardsFromStorage(userId: string): Board[] {
+  if (typeof window === "undefined") return [];
+  const key = `${LOCAL_STORAGE_KEY_PREFIX}${effectiveUserId(userId)}`;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed as Board[];
+  } catch {
+    return [];
+  }
+}
+
+function persistBoardsToStorage(userId: string, boards: Board[]): void {
+  if (typeof window === "undefined") return;
+  const key = `${LOCAL_STORAGE_KEY_PREFIX}${effectiveUserId(userId)}`;
+  try {
+    window.localStorage.setItem(
+      key,
+      JSON.stringify(boards)
+    );
+  } catch {
+    // Ignore storage errors to keep UX responsive.
+  }
+}
+
 function readMemoryBoards(userId: string): Board[] {
-  return [...(memoryBoards.get(userId) || [])];
+  const id = effectiveUserId(userId);
+  const existing = memoryBoards.get(id);
+  if (existing) {
+    return [...existing];
+  }
+  const fromStorage = loadBoardsFromStorage(id);
+  if (fromStorage.length > 0) {
+    memoryBoards.set(id, [...fromStorage]);
+  }
+  return [...fromStorage];
 }
 
 function writeMemoryBoards(userId: string, boards: Board[]) {
-  memoryBoards.set(userId, [...boards]);
+  const id = effectiveUserId(userId);
+  memoryBoards.set(id, [...boards]);
+  persistBoardsToStorage(id, boards);
 }
 
 function makeLocalId() {
@@ -131,6 +179,9 @@ export async function createBoard(userId: string): Promise<Board> {
 }
 
 export async function getBoards(userId: string): Promise<Board[]> {
+  const localBoards = readMemoryBoards(userId);
+  let cloudBoards: Board[] = [];
+
   try {
     assertAppwriteConfig();
     const result = await databases.listDocuments(
@@ -138,13 +189,25 @@ export async function getBoards(userId: string): Promise<Board[]> {
       APPWRITE_COLLECTION_BOARDS,
       [Query.equal("userId", [userId])]
     );
-    return result.documents.map(mapBoard);
-  } catch {
-    return readMemoryBoards(userId);
+    cloudBoards = result.documents.map(mapBoard);
+  } catch (error) {
+    console.warn("Failed to fetch cloud boards, falling back to local only", error);
   }
+
+  // Merge and deduplicate by ID
+  const allBoards = [...cloudBoards];
+  for (const local of localBoards) {
+    if (!allBoards.some((b) => b.id === local.id)) {
+      allBoards.push(local);
+    }
+  }
+  return allBoards;
 }
 
 export async function getReadableBoards(userId: string): Promise<Board[]> {
+  const localBoards = readMemoryBoards(userId);
+  let cloudBoards: Board[] = [];
+
   try {
     assertAppwriteConfig();
     const result = await databases.listDocuments(
@@ -153,12 +216,21 @@ export async function getReadableBoards(userId: string): Promise<Board[]> {
       [Query.limit(200)]
     );
     // Readability is enforced by Appwrite ACLs; this list includes owned and shared boards.
-    return result.documents
+    cloudBoards = result.documents
       .map(mapBoard)
       .filter((board) => Boolean(board.ownerId || board.userId || userId));
-  } catch {
-    return readMemoryBoards(userId);
+  } catch (error) {
+    console.warn("Failed to fetch cloud boards (readable), using local", error);
   }
+
+  // Merge and deduplicate
+  const allBoards = [...cloudBoards];
+  for (const local of localBoards) {
+    if (!allBoards.some((b) => b.id === local.id)) {
+      allBoards.push(local);
+    }
+  }
+  return allBoards;
 }
 
 export async function getBoardById(userId: string, id: string): Promise<Board | undefined> {
@@ -170,7 +242,8 @@ export async function getBoardById(userId: string, id: string): Promise<Board | 
       id
     );
     return mapBoard(doc);
-  } catch {
+  } catch (error) {
+    // If not found in cloud or error, check local
     const boards = readMemoryBoards(userId);
     return boards.find((board) => board.id === id);
   }

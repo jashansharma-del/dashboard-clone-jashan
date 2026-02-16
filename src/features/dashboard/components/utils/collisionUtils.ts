@@ -43,7 +43,7 @@ export function findNonOverlappingPosition(
     };
 
     let hasCollision = false;
-    
+
     for (const node of existingNodes) {
       const nodeData = node.data as PieNodeData;
       const existingRect: Rectangle = {
@@ -60,10 +60,6 @@ export function findNonOverlappingPosition(
     }
 
     if (!hasCollision) {
-      console.log(`✅ Found non-overlapping position after ${attempt + 1} attempts:`, {
-        x: currentX,
-        y: currentY,
-      });
       return { x: currentX, y: currentY };
     }
 
@@ -71,6 +67,5 @@ export function findNonOverlappingPosition(
     currentY += OFFSET;
   }
 
-  console.warn("⚠️ Could not find non-overlapping position, using offset position");
   return { x: currentX, y: currentY };
 }

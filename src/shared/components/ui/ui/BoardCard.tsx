@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import * as htmlToImage from "html-to-image";
 import BoardPreview from "./BoardPreview";
 import type { Message } from "../../../../data/boardStorage";
-import { Download, MoreVertical, Pin, PinOff, Share2, Trash2 } from "lucide-react";
+import { Download, MoreVertical, Pin, PinOff, Share2, Trash2, Star } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +28,8 @@ type BoardCardProps = {
   onImport?: () => void;
   isImporting?: boolean;
   badgeLabel?: string;
+  showChatSection?: boolean;
+  onOpenFeatured?: () => void;
 };
 
 export default function BoardCard({
@@ -44,6 +46,8 @@ export default function BoardCard({
   onImport,
   isImporting = false,
   badgeLabel,
+  showChatSection = true,
+  onOpenFeatured,
 }: BoardCardProps) {
   const previewRef = useRef<HTMLDivElement>(null);
   const [image, setImage] = useState<string | null>(null);
@@ -112,6 +116,18 @@ export default function BoardCard({
             align="end"
             onClick={(e) => e.stopPropagation()}
           >
+            {onOpenFeatured && (
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onOpenFeatured();
+                }}
+              >
+                <Star className="h-4 w-4" />
+                Featured canvas
+              </DropdownMenuItem>
+            )}
             {onImport && (
               <DropdownMenuItem
                 onSelect={(e) => {
@@ -188,9 +204,9 @@ export default function BoardCard({
         )}
       </div>
 
-      <h3 className="mt-4 text-lg font-semibold dark:text-white transition-colors duration-300">{title}</h3>
+<h3 className="mt-4 text-lg font-semibold dark:text-white transition-colors duration-300">{title}</h3>
       
-      {messages && messages.length > 0 && (
+      {showChatSection && messages && messages.length > 0 && (
         <div className="mt-2">
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-1 transition-colors duration-300">Chat: {messages.length} message{messages.length !== 1 ? 's' : ''}</div>
           <div className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-full transition-colors duration-300">

@@ -18,7 +18,6 @@ export const authService = {
     try {
       return await account.get();
     } catch (error) {
-      console.error("Authentication error:", error);
       return null;
     }
   },
@@ -41,7 +40,6 @@ export const authService = {
     try {
       await account.deleteSession("current");
     } catch (error) {
-      console.warn("Failed to delete Appwrite session:", error);
     }
     await clearWebexSession();
   },
@@ -72,7 +70,6 @@ export const authService = {
       const prefs = await account.getPrefs();
       await account.updatePrefs({ ...prefs, theme });
     } catch (error) {
-      console.error("Failed to update theme preference:", error);
     }
   },
 };

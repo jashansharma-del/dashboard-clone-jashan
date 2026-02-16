@@ -9,6 +9,7 @@ import {
 export type AIChartSeriesPoint = {
   label: string;
   value: number;
+  forecast?: boolean;
 };
 
 export type AIChartPayload = {
@@ -21,6 +22,7 @@ export type AIResponse = {
   assistantText: string;
   chart?: AIChartPayload;
   citations?: string[];
+  commands?: any[];
 };
 
 type AIRequest = {
@@ -72,6 +74,7 @@ function normalizeResponse(input: any): AIResponse {
       citations: Array.isArray(input.citations)
         ? input.citations.filter((x: unknown) => typeof x === "string")
         : undefined,
+      commands: Array.isArray(input.commands) ? input.commands : undefined,
     };
   }
 
@@ -124,8 +127,7 @@ export async function requestAIResponse(
         if (!res.ok) {
           const text = await res.text().catch(() => "");
           throw new Error(
-            `AI endpoint ${endpoint} failed with status ${res.status}${
-              text ? `: ${text}` : ""
+            `AI endpoint ${endpoint} failed with status ${res.status}${text ? `: ${text}` : ""
             }`
           );
         }
@@ -153,9 +155,8 @@ export async function requestAIResponse(
       errorCode: error instanceof Error ? error.message : "unknown_ai_error",
     });
     return {
-      assistantText: `AI service is unavailable right now. ${
-        error instanceof Error ? error.message : "Please retry in a few seconds."
-      }`,
+      assistantText: `AI service is unavailable right now. ${error instanceof Error ? error.message : "Please retry in a few seconds."
+        }`,
     };
   }
 }

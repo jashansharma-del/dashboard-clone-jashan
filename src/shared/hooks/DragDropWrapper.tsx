@@ -69,14 +69,22 @@ export default function DragDropWrapper({
   }, [propBoardId]);
 
   useEffect(() => {
-    if (!propBoardId) return;
+    if (!propBoardId || !isLoaded) return;
 
     const interval = window.setInterval(async () => {
       try {
         const events = await listBoardEvents(propBoardId);
         if (!events.length) return;
+
+        // On first run after load, just capture the current latest event ID
+        // without applying it, to prevent "replaying" older events over fresh data.
         const latest = events[0];
-        if (!latest || latest.id === lastSyncedEventId.current) return;
+        if (!lastSyncedEventId.current) {
+          lastSyncedEventId.current = latest.id;
+          return;
+        }
+
+        if (latest.id === lastSyncedEventId.current) return;
         lastSyncedEventId.current = latest.id;
 
         if (latest.eventType === "node_update" && latest.payload?.nodesJson) {
@@ -87,12 +95,12 @@ export default function DragDropWrapper({
           setDroppedNodes(next);
         }
       } catch {
-        // Keep UI responsive even if event sync fails.
+        // Keep UI responsive
       }
     }, 2500);
 
     return () => clearInterval(interval);
-  }, [propBoardId]);
+  }, [propBoardId, isLoaded]);
 
   const addNode = useCallback((node: Node) => {
     if (!canEdit) return;

@@ -12,7 +12,7 @@ import {
   persistWebexSession,
 } from "./webexAuth";
 import { account } from "./appwriteClient";
-import { getWebexAccessToken, storeWebexPrefs } from "../utils/webexStorage";
+import { getWebexAccessToken, storeWebexPrefs, getWebexStoredUser } from "../utils/webexStorage";
 
 export default function WebexCallback() {
   const navigate = useNavigate();
@@ -73,8 +73,30 @@ export default function WebexCallback() {
         }
         clearWebexOAuthState();
 
-        // Canonical auth identity must come from Appwrite account ID.
-        const appwriteUser = await account.get();
+        // Canonical auth identity must come from Appwrite account ID, or fallback to local.
+        let appwriteUser: { $id: string; email: string; name: string } | null = null;
+        try {
+          const info = await account.get();
+          appwriteUser = {
+            $id: info.$id,
+            email: info.email,
+            name: info.name
+          };
+        } catch {
+          console.warn("Could not get Appwrite account, trying local fallback...");
+          const local = await getWebexStoredUser(); // This now checks local storage
+          if (local) {
+            appwriteUser = {
+              $id: local.$id,
+              email: local.email,
+              name: local.name
+            };
+          }
+        }
+
+        if (!appwriteUser) {
+          throw new Error("Could not determine user identity from Appwrite or local storage.");
+        }
 
         dispatch(
           setCredentials({

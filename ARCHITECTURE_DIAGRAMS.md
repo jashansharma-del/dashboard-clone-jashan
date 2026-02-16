@@ -1,6 +1,6 @@
 # Architecture Diagrams
 
-This file provides visual diagrams for the Cisco Dashboard Clone using Mermaid.
+This file provides visual diagrams for the Disco Dashboard Clone using Mermaid.
 
 ## 1. High-Level Runtime Flow
 

@@ -1,16 +1,14 @@
 import { NodeResizer } from "reactflow";
 import type { NodeProps } from "reactflow";
 import type { PieNodeData } from "../../../types/chartTypes";
+import NodeChat from "./NodeChat";
 
-const PieChartNode = ({ data, selected }: NodeProps<PieNodeData>) => {
-  console.log("🎨 PieChartNode rendering with data:", data);
-  
+const PieChartNode = ({ id, data, selected }: NodeProps<PieNodeData>) => {
   const total = data.graphData.reduce((sum, slice) => sum + slice.value, 0);
   const colors = ["#3B82F6", "#F59E0B", "#10B981", "#EF4444"];
 
   return (
     <>
-      {/* NodeResizer with larger handle area */}
       <NodeResizer
         color="#3B82F6"
         isVisible={selected}
@@ -25,15 +23,16 @@ const PieChartNode = ({ data, selected }: NodeProps<PieNodeData>) => {
           borderWidth: '2px',
         }}
       />
-      
+
       <div
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border-2 transition-colors"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border-2 transition-colors relative"
         style={{
           width: '100%',
           height: '100%',
           borderColor: selected ? "#3B82F6" : "#D1D5DB",
         }}
       >
+        <NodeChat nodeId={id} />
         <svg
           width="100%"
           height="100%"
