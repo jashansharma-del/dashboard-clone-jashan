@@ -75,7 +75,7 @@ export default function SignIn() {
     <div
       className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
       style={{
-        backgroundImage: "url('/ciscoimg.jpg')",
+        backgroundImage: "url('/discoimg.jpg')",
       }}
     >
       <div className="bg-black/15 backdrop-blur-[1px] border border-white/20 shadow-lg rounded-xl p-8 text-white">

@@ -1,4 +1,4 @@
-# Cisco Dashboard Clone
+# Disco Dashboard Clone
 
 Interactive analytics board app built with React + TypeScript.  
 Users can create boards, drag charts onto a canvas, keep chat context, and share board links through Webex.

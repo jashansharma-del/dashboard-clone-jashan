@@ -5,6 +5,11 @@ import type { RootState, AppDispatch } from '../../../store';
 import { toggleTheme } from '../../../store/uiSlice';
 import { logout } from '../../../store/authSlice';
 import { broadcastLogout } from '../../../lib/broadcast';
+import { useParams } from "react-router-dom";
+import { client } from "../../../features/dashboard/components/utils/authService";
+import { APPWRITE_DATABASE_ID, APPWRITE_COLLECTION_BOARD_PRESENCE } from "../../../data/appwriteConfig";
+import { listPresence, type PresenceRecord } from "../../../data/presenceStorage";
+import { useEffect } from "react";
 import {
   Plus,
   Search,
@@ -26,11 +31,14 @@ export default function Header() {
   const dispatch = useDispatch<AppDispatch>();
   const { theme } = useSelector((state: RootState) => state.ui);
   const navigate = useNavigate();
-  
+
   const [open, setOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [inbox, setInbox] = useState<UserNotification[]>([]);
-  
+  const [presence, setPresence] = useState<PresenceRecord[]>([]);
+
+  const { boardId } = useParams<{ boardId: string }>();
+
   const userName = useSelector((state: RootState) => {
     return state.auth.user?.name || "User";
   });
@@ -60,7 +68,6 @@ export default function Header() {
 
   const handleLogout = async () => {
     try {
-      console.log("Logout clicked");
       await dispatch(logout());
       broadcastLogout();
       navigate('/', { replace: true });
@@ -68,6 +75,65 @@ export default function Header() {
       console.error(err);
     }
   };
+
+  useEffect(() => {
+    if (!boardId || !userId) {
+      setPresence([]);
+      return;
+    }
+
+    let cancelled = false;
+    const activeCutoff = 15000;
+
+    listPresence(boardId).then((items) => {
+      if (cancelled) return;
+      const now = Date.now();
+      setPresence(
+        items.filter(
+          (item) => (now - new Date(item.lastSeenAt).getTime()) < activeCutoff && item.userId !== userId
+        )
+      );
+    });
+
+    const unsubscribe = client.subscribe(
+      `databases.${APPWRITE_DATABASE_ID}.collections.${APPWRITE_COLLECTION_BOARD_PRESENCE}.documents`,
+      (response) => {
+        const payload = response.payload as any;
+        if (payload.boardId !== boardId || payload.userId === userId) return;
+
+        setPresence((prev) => {
+          const now = Date.now();
+          const filtered = prev.filter(
+            (p) => (now - new Date(p.lastSeenAt).getTime()) < activeCutoff
+          );
+
+          if (response.events.some((e) => e.includes("delete"))) {
+            return filtered.filter((p) => p.userId !== payload.userId);
+          }
+
+          const record: PresenceRecord = {
+            id: payload.$id,
+            boardId: payload.boardId,
+            userId: payload.userId,
+            cursorX: Number(payload.cursorX || 0),
+            cursorY: Number(payload.cursorY || 0),
+            lastSeenAt: payload.lastSeenAt || new Date().toISOString(),
+          };
+
+          const index = filtered.findIndex((p) => p.userId === payload.userId);
+          if (index === -1) return [...filtered, record];
+          const next = [...filtered];
+          next[index] = record;
+          return next;
+        });
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [boardId, userId]);
   return (
     <header className="h-16 bg-gradient-to-r from-gray-800 to-gray-900 flex items-center px-6 transition-colors duration-300">
       <div className="flex w-full items-center justify-between text-white">
@@ -81,6 +147,25 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2 md:gap-4 flex-grow justify-end min-w-0">
+          {presence.length > 0 && (
+            <div className="flex -space-x-2 overflow-hidden mr-4">
+              {presence.slice(0, 3).map((p) => (
+                <div
+                  key={p.id}
+                  className="inline-block h-8 w-8 rounded-full ring-2 ring-gray-800 bg-blue-500 flex items-center justify-center text-xs font-bold text-white shadow-sm"
+                  title={p.userId}
+                >
+                  {p.userId.slice(0, 2).toUpperCase()}
+                </div>
+              ))}
+              {presence.length > 3 && (
+                <div className="inline-block h-8 w-8 rounded-full ring-2 ring-gray-800 bg-gray-700 flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                  +{presence.length - 3}
+                </div>
+              )}
+            </div>
+          )}
+
           <Button className="bg-blue-600 hover:bg-blue-700 text-white hidden md:flex">
             <Plus className="w-4 h-4 mr-1" />
             Create
@@ -97,13 +182,13 @@ export default function Header() {
             />
           </div>
 
-          <div 
+          <div
             onClick={handleToggleTheme}
             className="w-5 h-5 cursor-pointer flex items-center justify-center flex-shrink-0"
           >
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </div>
-          
+
           <Wand2 className="w-5 h-5 cursor-pointer flex-shrink-0 hidden lg:flex" />
           <HelpCircle className="w-5 h-5 cursor-pointer flex-shrink-0 hidden lg:flex" />
           <div className="relative hidden lg:block">
@@ -124,9 +209,8 @@ export default function Header() {
                     <button
                       key={item.id}
                       type="button"
-                      className={`w-full text-left rounded px-2 py-2 hover:bg-gray-700 ${
-                        item.readAt ? "opacity-70" : ""
-                      }`}
+                      className={`w-full text-left rounded px-2 py-2 hover:bg-gray-700 ${item.readAt ? "opacity-70" : ""
+                        }`}
                       onClick={() => onRead(item.id)}
                     >
                       <div className="text-xs text-gray-200">{item.title}</div>

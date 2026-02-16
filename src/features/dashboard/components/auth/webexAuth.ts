@@ -271,20 +271,18 @@ export const persistWebexSession = (token: WebexTokenResponse, me: WebexMe) => {
   };
 };
 
+import { getWebexAccessToken } from "../utils/webexStorage";
+
 export const isWebexSessionValid = async () => {
-  try {
-    const prefs = await account.getPrefs();
-    const webex = (prefs as Record<string, any>)?.webex;
-    if (!webex || !webex.accessToken) {
-      return false;
-    }
-    if (!webex.expiresAt) {
-      return true;
-    }
-    return Number(webex.expiresAt) > Date.now();
-  } catch {
-    return false;
-  }
+  // Check if we have a valid token (either from Appwrite or local storage)
+  const token = await getWebexAccessToken();
+  if (!token) return false;
+
+  // We could strictly check expiration here if we had the full prefs object locally,
+  // but for now, existence of the token is a good enough proxy for "is logged in"
+  // in the local fallback scenario. The API calls will fail if it's expired,
+  // prompting a re-login naturally.
+  return true;
 };
 
 export const clearWebexSession = async () => {

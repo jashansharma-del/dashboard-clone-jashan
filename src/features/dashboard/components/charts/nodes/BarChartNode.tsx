@@ -1,10 +1,9 @@
 import { NodeResizer } from "reactflow";
 import type { NodeProps } from "reactflow";
 import type { BarNodeData } from "../../../types/chartTypes";
+import NodeChat from "./NodeChat";
 
-const BarChartNode = ({ data, selected }: NodeProps<BarNodeData>) => {
-  console.log("📊 BarChartNode rendering with data:", data);
-
+const BarChartNode = ({ id, data, selected }: NodeProps<BarNodeData>) => {
   // Calculate max value for scaling
   const maxValue = Math.max(...data.graphData.map(slice => slice.value), 1);
   const colors = ["#3B82F6", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#EC4899"];
@@ -26,15 +25,16 @@ const BarChartNode = ({ data, selected }: NodeProps<BarNodeData>) => {
           borderWidth: '2px',
         }}
       />
-      
+
       <div
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border-2 transition-colors flex flex-col"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border-2 transition-colors flex flex-col relative"
         style={{
           width: '100%',
           height: '100%',
           borderColor: selected ? "#3B82F6" : "#D1D5DB",
         }}
       >
+        <NodeChat nodeId={id} />
         <div className="flex-1 flex items-end justify-center gap-2">
           {data.graphData.map((slice, idx) => {
             const heightPercentage = (slice.value / maxValue) * 100;
@@ -47,11 +47,11 @@ const BarChartNode = ({ data, selected }: NodeProps<BarNodeData>) => {
                 <div
                   className="w-8 rounded-t hover:opacity-90 transition-opacity"
                   style={{
-                    height: `${heightPercentage}%`,
+                    height: `${heightPercentage}% `,
                     backgroundColor: colors[idx % colors.length],
                     minHeight: '5%'
                   }}
-                  title={`${slice.label}: ${slice.value}`}
+                  title={`${slice.label}: ${slice.value} `}
                 >
                   <div className="text-xs text-white font-medium text-center pt-1 truncate w-full">
                     {slice.value}

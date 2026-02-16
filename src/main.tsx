@@ -7,14 +7,18 @@ import "./index.css";
 import { store } from '../src/store';
 import { enforceLocalhostOnly } from "./lib/runtimeGuard";
 
+import ErrorBoundary from "./components/ErrorBoundary";
+
 enforceLocalhostOnly();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Provider store={store}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </Provider>
+    </ErrorBoundary>
   </StrictMode>
 );

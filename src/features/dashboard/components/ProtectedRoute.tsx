@@ -10,10 +10,10 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  
+
 
   useEffect(() => {
-      const checkAuth = async () => {
+    const checkAuth = async () => {
       const user = await authService.getCurrentUser();
       if (user) {
         setIsAuthenticated(true);
@@ -24,12 +24,12 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     };
 
     checkAuth();
-  }, []);
+  }, [location.pathname]);
 
   //Loading state
-  if(isAuthenticated === null) {
+  if (isAuthenticated === null) {
     return (
-       <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin h-10 w-10 border-b-2 border-blue-600 rounded-full" />
       </div>
     );
@@ -37,15 +37,15 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // not logged in -> redirect
 
-  if(!isAuthenticated) {
+  if (!isAuthenticated) {
     const intendedPath = `${location.pathname}${location.search}${location.hash}`;
     if (intendedPath && intendedPath !== "/") {
       sessionStorage.setItem("post_login_redirect", intendedPath);
     }
     return <Navigate to="/" replace />;
-  }  
+  }
 
   // Logged in -> render route
   return children ? <>{children}</> : <Outlet />;
-    
-  }
+
+}

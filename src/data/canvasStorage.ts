@@ -1,4 +1,4 @@
-import { ID, Query } from "appwrite";
+import { ID, Query, Permission, Role } from "appwrite";
 import { databases } from "../features/dashboard/components/utils/authService";
 import {
   APPWRITE_DATABASE_ID,
@@ -57,9 +57,15 @@ export async function saveCanvas(
       APPWRITE_DATABASE_ID,
       APPWRITE_COLLECTION_CANVAS,
       ID.unique(),
-      payload
+      payload,
+      [
+        Permission.read(Role.users()),
+        Permission.update(Role.users()),
+        Permission.delete(Role.users()),
+      ]
     );
   } catch (error) {
+    console.error("❌ saveCanvas Error:", error);
     memoryCanvas.set(boardId, { nodes: nodes || [], edges: edges || [] });
     if (error instanceof Error) {
       throw error;
